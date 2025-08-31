@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edurpg-postgres
+    environment:
+      POSTGRES_DB: edurpg
+      POSTGRES_USER: edurpg_user
+      POSTGRES_PASSWORD: edurpg_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./ops/backup.sh:/backup.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U edurpg_user -d edurpg"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  # Optional: pgAdmin for database management
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: edurpg-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@edurpg.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  default:
+    name: edurpg-network
