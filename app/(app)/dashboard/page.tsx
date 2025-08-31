@@ -14,28 +14,24 @@ export default async function DashboardPage() {
   }
   
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="space-y-6">
+      {/* Welcome Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
             Vítejte, {session.user.name}!
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Role: {session.user.role}
+            Role: {
+              session.user.role === UserRole.STUDENT ? "Student" :
+              session.user.role === UserRole.TEACHER ? "Učitel" :
+              "Operátor"
+            }
           </p>
-        </div>
-        <div className="flex items-center space-x-4">
-          <div className="text-right">
-            <p className="text-sm text-gray-500">Úroveň</p>
-            <p className="text-lg font-semibold">1</p>
-          </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-500">XP</p>
-            <p className="text-lg font-semibold text-green-600">0</p>
-          </div>
         </div>
       </div>
       
+      {/* Role-specific Dashboard */}
       {session.user.role === UserRole.STUDENT && (
         <StudentDashboard userId={session.user.id} classId={session.user.classId} />
       )}

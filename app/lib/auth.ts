@@ -1,7 +1,7 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
-import { UserRole } from "../lib/generated"
+import { UserRole } from "./generated"
 import { z } from "zod"
 import { loginToBakalariAndFetchUserData, BakalariUserData } from "./bakalari/bakalari"
 import { logEvent } from "./utils"

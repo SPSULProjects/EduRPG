@@ -42,9 +42,17 @@ describe('Authentication', () => {
       expect(result2).toBeNull()
     })
 
+    it('should have the correct provider structure', () => {
+      const provider = authOptions.providers[0]
+      expect(provider.name).toBe('Credentials')
+      expect(provider.authorize).toBeDefined()
+      expect(typeof provider.authorize).toBe('function')
+    })
+
     it('should handle Bakalari authentication success', async () => {
       const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
       const { prisma } = await import('../prisma')
+      const { logEvent } = await import('../utils')
       
       // Mock successful Bakalari response
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
