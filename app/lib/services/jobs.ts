@@ -170,7 +170,7 @@ export class JobsService {
     })
   }
   
-  static async completeJob(jobId: string, teacherId: string, requestId?: string) {
+  static async closeJob(jobId: string, teacherId: string, requestId?: string) {
     const reqId = requestId || generateRequestId()
     
     return await prisma.$transaction(async (tx) => {
@@ -188,11 +188,11 @@ export class JobsService {
       }
       
       if (job.teacherId !== teacherId) {
-        throw new Error("Only the job creator can complete the job")
+        throw new Error("Only the job creator can close the job")
       }
       
       if (job.status !== JobStatus.OPEN && job.status !== JobStatus.IN_PROGRESS) {
-        throw new Error("Job cannot be completed in current status")
+        throw new Error("Job cannot be closed in current status")
       }
       
       // Update job status
@@ -209,59 +209,114 @@ export class JobsService {
         a => a.status === JobAssignmentStatus.APPROVED
       )
       
-      for (const assignment of approvedAssignments) {
-        // Calculate individual payout (split equally)
+      const payouts: Array<{
+        studentId: string
+        studentName: string
+        xpAmount: number
+        moneyAmount: number
+      }> = []
+      
+      let totalXpPaid = 0
+      let totalMoneyPaid = 0
+      
+      if (approvedAssignments.length > 0) {
+        // Calculate individual payout (floor division)
         const xpPerStudent = Math.floor(job.xpReward / approvedAssignments.length)
         const moneyPerStudent = Math.floor(job.moneyReward / approvedAssignments.length)
         
-        // Award XP
-        await tx.xPAudit.create({
-          data: {
-            userId: assignment.studentId,
-            amount: xpPerStudent,
-            reason: `Job completion: ${job.title}`,
-            requestId: reqId
-          }
-        })
-        
-        // Award money
-        await tx.moneyTx.create({
-          data: {
-            userId: assignment.studentId,
-            amount: moneyPerStudent,
-            type: "EARNED",
-            reason: `Job completion: ${job.title}`,
-            requestId: reqId
-          }
-        })
-        
-        // Update assignment status
-        await tx.jobAssignment.update({
-          where: { id: assignment.id },
-          data: {
-            status: JobAssignmentStatus.COMPLETED,
-            completedAt: new Date()
-          }
-        })
+        for (const assignment of approvedAssignments) {
+          // Award XP
+          await tx.xPAudit.create({
+            data: {
+              userId: assignment.studentId,
+              amount: xpPerStudent,
+              reason: `Job completion: ${job.title}`,
+              requestId: reqId
+            }
+          })
+          
+          // Award money
+          await tx.moneyTx.create({
+            data: {
+              userId: assignment.studentId,
+              amount: moneyPerStudent,
+              type: "EARNED",
+              reason: `Job completion: ${job.title}`,
+              requestId: reqId
+            }
+          })
+          
+          // Update assignment status
+          await tx.jobAssignment.update({
+            where: { id: assignment.id },
+            data: {
+              status: JobAssignmentStatus.COMPLETED,
+              completedAt: new Date()
+            }
+          })
+          
+          totalXpPaid += xpPerStudent
+          totalMoneyPaid += moneyPerStudent
+          
+          payouts.push({
+            studentId: assignment.studentId,
+            studentName: assignment.student.name,
+            xpAmount: xpPerStudent,
+            moneyAmount: moneyPerStudent
+          })
+        }
       }
       
-      // Log completion
+      // Calculate remainders
+      const xpRemainder = job.xpReward - totalXpPaid
+      const moneyRemainder = job.moneyReward - totalMoneyPaid
+      
+      // Log completion with remainder information
       await tx.systemLog.create({
         data: {
           level: "INFO",
-          message: sanitizeForLog(`Job completed: ${job.title}`),
+          message: sanitizeForLog(`Job closed: ${job.title}`),
           userId: teacherId,
           requestId: reqId,
           metadata: {
             jobId,
             totalXP: job.xpReward,
             totalMoney: job.moneyReward,
-            studentsCount: approvedAssignments.length
+            studentsCount: approvedAssignments.length,
+            xpPaid: totalXpPaid,
+            moneyPaid: totalMoneyPaid,
+            xpRemainder,
+            moneyRemainder
           }
         }
       })
       
-      return updatedJob
+      // Log remainder if any
+      if (xpRemainder > 0 || moneyRemainder > 0) {
+        await tx.systemLog.create({
+          data: {
+            level: "WARN",
+            message: sanitizeForLog(`Job payout remainder: XP=${xpRemainder}, Money=${moneyRemainder}`),
+            userId: teacherId,
+            requestId: reqId,
+            metadata: {
+              jobId,
+              xpRemainder,
+              moneyRemainder,
+              reason: "Floor division remainder"
+            }
+          }
+        })
+      }
+      
+      return {
+        job: updatedJob,
+        payouts,
+        remainder: {
+          xp: xpRemainder,
+          money: moneyRemainder
+        }
+      }
     })
   }
   
@@ -305,6 +360,131 @@ export class JobsService {
         }
       },
       orderBy: { createdAt: "desc" }
+    })
+  }
+  
+  static async getJobsForClass(classId: string, userId: string, userRole: string) {
+    const whereClause: any = {
+      subject: {
+        enrollments: {
+          some: { classId }
+        }
+      }
+    }
+    
+    // Students can only see open jobs
+    if (userRole === "STUDENT") {
+      whereClause.status = JobStatus.OPEN
+    }
+    
+    // Optimized query to avoid N+1 by fetching all assignments in one go
+    return await prisma.job.findMany({
+      where: whereClause,
+      include: {
+        subject: true,
+        teacher: {
+          select: { name: true }
+        },
+        assignments: {
+          where: { studentId: userId },
+          include: {
+            student: {
+              select: { name: true, email: true }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    })
+  }
+  
+  static async rejectJobAssignment(assignmentId: string, teacherId: string, requestId?: string) {
+    const reqId = requestId || generateRequestId()
+    
+    return await prisma.$transaction(async (tx) => {
+      const assignment = await tx.jobAssignment.findUnique({
+        where: { id: assignmentId },
+        include: { job: true }
+      })
+      
+      if (!assignment) {
+        throw new Error("Assignment not found")
+      }
+      
+      if (assignment.job.teacherId !== teacherId) {
+        throw new Error("Only the job creator can reject assignments")
+      }
+      
+      if (assignment.status !== JobAssignmentStatus.APPLIED) {
+        throw new Error("Assignment is not in APPLIED status")
+      }
+      
+      const updatedAssignment = await tx.jobAssignment.update({
+        where: { id: assignmentId },
+        data: { status: JobAssignmentStatus.REJECTED }
+      })
+      
+      // Log rejection
+      await tx.systemLog.create({
+        data: {
+          level: "INFO",
+          message: sanitizeForLog(`Job assignment rejected: ${assignment.job.title}`),
+          userId: teacherId,
+          requestId: reqId,
+          metadata: {
+            assignmentId,
+            jobId: assignment.jobId,
+            studentId: assignment.studentId
+          }
+        }
+      })
+      
+      return updatedAssignment
+    })
+  }
+  
+  static async returnJobAssignment(assignmentId: string, teacherId: string, requestId?: string) {
+    const reqId = requestId || generateRequestId()
+    
+    return await prisma.$transaction(async (tx) => {
+      const assignment = await tx.jobAssignment.findUnique({
+        where: { id: assignmentId },
+        include: { job: true }
+      })
+      
+      if (!assignment) {
+        throw new Error("Assignment not found")
+      }
+      
+      if (assignment.job.teacherId !== teacherId) {
+        throw new Error("Only the job creator can return assignments")
+      }
+      
+      if (assignment.status !== JobAssignmentStatus.APPROVED) {
+        throw new Error("Assignment is not in APPROVED status")
+      }
+      
+      const updatedAssignment = await tx.jobAssignment.update({
+        where: { id: assignmentId },
+        data: { status: JobAssignmentStatus.APPLIED }
+      })
+      
+      // Log return
+      await tx.systemLog.create({
+        data: {
+          level: "INFO",
+          message: sanitizeForLog(`Job assignment returned for revision: ${assignment.job.title}`),
+          userId: teacherId,
+          requestId: reqId,
+          metadata: {
+            assignmentId,
+            jobId: assignment.jobId,
+            studentId: assignment.studentId
+          }
+        }
+      })
+      
+      return updatedAssignment
     })
   }
 }
