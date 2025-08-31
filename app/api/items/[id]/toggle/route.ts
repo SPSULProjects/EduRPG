@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { ShopService } from "@/app/lib/services/shop"
+import { ItemsService } from "@/app/lib/services/items"
 import { requireOperator } from "@/app/lib/rbac"
 
 export async function POST(
@@ -10,7 +10,7 @@ export async function POST(
     const user = await requireOperator()
     const { id: itemId } = await params
     
-    const updatedItem = await ShopService.toggleItem(itemId)
+    const updatedItem = await ItemsService.toggleItemStatus(itemId)
     
     return NextResponse.json({ item: updatedItem })
   } catch (error) {

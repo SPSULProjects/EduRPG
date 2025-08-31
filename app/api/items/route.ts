@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { ShopService } from "@/app/lib/services/shop"
+import { ItemsService } from "@/app/lib/services/items"
 import { requireOperator } from "@/app/lib/rbac"
 import { ItemRarity, ItemType } from "@/app/lib/generated"
 import { z } from "zod"
@@ -15,7 +15,7 @@ const createItemSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const items = await ShopService.getItems()
+    const items = await ItemsService.getAllItems()
     return NextResponse.json({ items })
   } catch (error) {
     console.error("Items GET error:", error)
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     
     const validatedData = createItemSchema.parse(body)
     
-    const item = await ShopService.createItem(validatedData)
+    const item = await ItemsService.createItem(validatedData)
     
     return NextResponse.json({ item }, { status: 201 })
   } catch (error) {

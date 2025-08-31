@@ -12,6 +12,7 @@ vi.mock('next/navigation', () => ({
   }),
   useSearchParams: () => new URLSearchParams(),
   usePathname: () => '/',
+  redirect: vi.fn(),
 }))
 
 // Mock NextAuth
@@ -21,6 +22,79 @@ vi.mock('next-auth/react', () => ({
   signOut: vi.fn(),
   getSession: vi.fn(),
 }))
+
+// Mock next-auth server with hoisted mock
+const mockGetServerSession = vi.fn()
+vi.mock('next-auth', () => ({
+  getServerSession: mockGetServerSession,
+}))
+
+// Export the mock for use in tests
+export { mockGetServerSession }
+
+// Mock Prisma with hoisted mocks
+const mockPrisma = {
+  user: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  job: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  jobAssignment: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  item: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  purchase: {
+    findMany: vi.fn(),
+    create: vi.fn(),
+    aggregate: vi.fn(),
+  },
+  achievement: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    count: vi.fn(),
+  },
+  achievementAward: {
+    findUnique: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+    groupBy: vi.fn(),
+    count: vi.fn(),
+  },
+  moneyTx: {
+    findFirst: vi.fn(),
+    findMany: vi.fn(),
+    create: vi.fn(),
+  },
+  systemLog: {
+    create: vi.fn(),
+  },
+  $transaction: vi.fn(),
+  $queryRaw: vi.fn(),
+}
+
+vi.mock('@/app/lib/prisma', () => ({
+  prisma: mockPrisma,
+}))
+
+// Export the mock for use in tests
+export { mockPrisma }
 
 // Global test setup
 global.ResizeObserver = vi.fn().mockImplementation(() => ({
