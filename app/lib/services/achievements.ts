@@ -68,8 +68,8 @@ export class AchievementsService {
       id: achievement.id,
       name: achievement.name,
       description: achievement.description,
-      badgeUrl: achievement.badgeUrl,
-      criteria: achievement.criteria,
+      badgeUrl: achievement.badgeUrl || undefined,
+      criteria: achievement.criteria || undefined,
       isActive: achievement.isActive,
       createdAt: achievement.createdAt,
       updatedAt: achievement.updatedAt
@@ -96,8 +96,8 @@ export class AchievementsService {
       id: achievement.id,
       name: achievement.name,
       description: achievement.description,
-      badgeUrl: achievement.badgeUrl,
-      criteria: achievement.criteria,
+      badgeUrl: achievement.badgeUrl || undefined,
+      criteria: achievement.criteria || undefined,
       isActive: achievement.isActive,
       createdAt: achievement.createdAt,
       updatedAt: achievement.updatedAt,
@@ -121,8 +121,8 @@ export class AchievementsService {
       id: award.achievement.id,
       name: award.achievement.name,
       description: award.achievement.description,
-      badgeUrl: award.achievement.badgeUrl,
-      criteria: award.achievement.criteria,
+      badgeUrl: award.achievement.badgeUrl || undefined,
+      criteria: award.achievement.criteria || undefined,
       isActive: award.achievement.isActive,
       createdAt: award.achievement.createdAt,
       updatedAt: award.achievement.updatedAt
@@ -216,10 +216,10 @@ export class AchievementsService {
         id: award.id,
         userId: award.userId,
         achievementId: award.achievementId,
-        awardedBy: award.awardedBy,
+        awardedBy: award.awardedBy || undefined,
         createdAt: award.createdAt,
         user: award.user,
-        awardedByUser: award.awardedByUser
+        awardedByUser: award.awardedByUser || undefined
       }
     })
   }
@@ -253,10 +253,10 @@ export class AchievementsService {
       id: award.id,
       userId: award.userId,
       achievementId: award.achievementId,
-      awardedBy: award.awardedBy,
+      awardedBy: award.awardedBy || undefined,
       createdAt: award.createdAt,
       user: award.user,
-      awardedByUser: award.awardedByUser
+      awardedByUser: award.awardedByUser || undefined
     }))
   }
 
@@ -295,8 +295,8 @@ export class AchievementsService {
       id: updatedAchievement.id,
       name: updatedAchievement.name,
       description: updatedAchievement.description,
-      badgeUrl: updatedAchievement.badgeUrl,
-      criteria: updatedAchievement.criteria,
+      badgeUrl: updatedAchievement.badgeUrl || undefined,
+      criteria: updatedAchievement.criteria || undefined,
       isActive: updatedAchievement.isActive,
       createdAt: updatedAchievement.createdAt,
       updatedAt: updatedAchievement.updatedAt

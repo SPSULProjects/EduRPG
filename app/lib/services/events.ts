@@ -6,11 +6,11 @@ import { XPService } from "./xp"
 export class EventsService {
   static async createEvent(data: {
     title: string
-    description?: string
+    description?: string | null
     startsAt: Date
-    endsAt?: Date
+    endsAt?: Date | null
     xpBonus?: number
-    rarityReward?: ItemRarity
+    rarityReward?: ItemRarity | null
   }, createdBy: string) {
     const requestId = generateRequestId()
     
@@ -31,11 +31,11 @@ export class EventsService {
       const event = await tx.event.create({
         data: {
           title: data.title,
-          description: data.description,
+          description: data.description || null,
           startsAt: data.startsAt,
-          endsAt: data.endsAt,
+          endsAt: data.endsAt || null,
           xpBonus: data.xpBonus || 0,
-          rarityReward: data.rarityReward
+          rarityReward: data.rarityReward || null
         }
       })
       

@@ -62,7 +62,7 @@ export class ItemsService {
       price: item.price,
       rarity: item.rarity,
       type: item.type,
-      imageUrl: item.imageUrl,
+      imageUrl: item.imageUrl || undefined,
       isActive: item.isActive,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -89,7 +89,7 @@ export class ItemsService {
       price: item.price,
       rarity: item.rarity,
       type: item.type,
-      imageUrl: item.imageUrl,
+      imageUrl: item.imageUrl || undefined,
       isActive: item.isActive,
       createdAt: item.createdAt,
       updatedAt: item.updatedAt
@@ -134,7 +134,7 @@ export class ItemsService {
       price: updatedItem.price,
       rarity: updatedItem.rarity,
       type: updatedItem.type,
-      imageUrl: updatedItem.imageUrl,
+      imageUrl: updatedItem.imageUrl || undefined,
       isActive: updatedItem.isActive,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt
@@ -185,7 +185,7 @@ export class ItemsService {
       price: updatedItem.price,
       rarity: updatedItem.rarity,
       type: updatedItem.type,
-      imageUrl: updatedItem.imageUrl,
+      imageUrl: updatedItem.imageUrl || undefined,
       isActive: updatedItem.isActive,
       createdAt: updatedItem.createdAt,
       updatedAt: updatedItem.updatedAt
