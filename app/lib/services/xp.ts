@@ -1,6 +1,7 @@
 import { prisma } from "../prisma"
 import { UserRole } from "../generated"
 import { generateRequestId, sanitizeForLog } from "../utils"
+import { LevelingSystem } from "../leveling"
 
 export class XPService {
   static async grantXP(data: {
@@ -114,9 +115,14 @@ export class XPService {
     })
     
     const totalXP = xpAudits.reduce((sum, audit) => sum + audit.amount, 0)
+    const levelInfo = LevelingSystem.getLevelInfo(totalXP)
     
     return {
       totalXP,
+      level: levelInfo.level,
+      progressToNextLevel: LevelingSystem.getProgressToNextLevel(totalXP),
+      xpForNextLevel: levelInfo.xpForNextLevel,
+      xpNeededForNextLevel: levelInfo.xpRequired,
       audits: xpAudits,
       recentGrants: xpAudits.slice(0, 10) // Last 10 grants
     }
@@ -217,11 +223,13 @@ export class XPService {
     
     const usersWithXP = users.map(user => {
       const totalXP = user.xpAudits.reduce((sum, audit) => sum + audit.amount, 0)
+      const levelInfo = LevelingSystem.getLevelInfo(totalXP)
       return {
         id: user.id,
         name: user.name,
         totalXP,
-        level: Math.floor(totalXP / 100) + 1 // Simple level calculation
+        level: levelInfo.level,
+        progressToNextLevel: LevelingSystem.getProgressToNextLevel(totalXP)
       }
     })
     
