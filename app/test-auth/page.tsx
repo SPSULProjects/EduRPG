@@ -1,13 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { signIn, signOut, useSession } from "next-auth/react"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 
-export default function TestAuthPage() {
+function TestAuthContent() {
   const { data: session, status } = useSession()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
@@ -136,4 +136,26 @@ export default function TestAuthPage() {
       </Card>
     </div>
   )
+}
+
+export default function TestAuthPage() {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
+    return (
+      <div className="container mx-auto p-8">
+        <Card className="max-w-md mx-auto">
+          <CardContent className="p-6">
+            <div className="text-center">Loading...</div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return <TestAuthContent />
 }
