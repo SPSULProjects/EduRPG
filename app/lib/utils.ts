@@ -3,6 +3,7 @@ import { twMerge } from "tailwind-merge"
 import { randomUUID } from "crypto"
 import { prisma } from "./prisma"
 import { LogLevel } from "./generated"
+import { NextRequest } from "next/server"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -42,6 +43,13 @@ export async function logEvent(
  */
 export function getRequestId(headers: Headers): string | undefined {
   return headers.get('x-request-id') || undefined
+}
+
+/**
+ * Gets the request ID from NextRequest
+ */
+export function getRequestIdFromRequest(request: NextRequest): string | undefined {
+  return request.headers.get('x-request-id') || undefined
 }
 
 /**

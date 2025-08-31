@@ -25,10 +25,12 @@ export async function requireAuth() {
  * Require specific roles for access
  * Redirects to unauthorized if user doesn't have required roles
  */
-export async function requireRole(roles: UserRole[]) {
+export async function requireRole(roles: UserRole[], requestId?: string) {
   const user = await requireAuth()
   if (!roles.includes(user.role)) {
     await logEvent('WARN', 'rbac_deny', {
+      requestId,
+      userId: user.id,
       metadata: {
         userRole: user.role,
         requiredRoles: roles,
@@ -43,22 +45,22 @@ export async function requireRole(roles: UserRole[]) {
 /**
  * Require operator role
  */
-export async function requireOperator() {
-  return requireRole([UserRole.OPERATOR])
+export async function requireOperator(requestId?: string) {
+  return requireRole([UserRole.OPERATOR], requestId)
 }
 
 /**
  * Require teacher or operator role
  */
-export async function requireTeacher() {
-  return requireRole([UserRole.TEACHER, UserRole.OPERATOR])
+export async function requireTeacher(requestId?: string) {
+  return requireRole([UserRole.TEACHER, UserRole.OPERATOR], requestId)
 }
 
 /**
  * Require any authenticated user (student, teacher, or operator)
  */
-export async function requireAnyUser() {
-  return requireRole([UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR])
+export async function requireAnyUser(requestId?: string) {
+  return requireRole([UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR], requestId)
 }
 
 /**
@@ -77,7 +79,7 @@ export async function checkResourceAccess(resourceType: string): Promise<boolean
  * Guard function that checks route access and logs denies
  * Returns user if access is allowed, throws error if not
  */
-export async function guardRoute(path: string) {
+export async function guardRoute(path: string, requestId?: string) {
   const session = await getServerSession(authOptions)
   const userRole = session?.user?.role
   
@@ -85,6 +87,8 @@ export async function guardRoute(path: string) {
   
   if (!policyResult.allowed) {
     await logEvent('WARN', 'rbac_deny', {
+      requestId,
+      userId: session?.user?.id,
       metadata: {
         path,
         userRole: userRole || 'unauthenticated',
@@ -103,7 +107,7 @@ export async function guardRoute(path: string) {
  * Guard function for API routes that returns proper HTTP responses
  * Use this in API route handlers
  */
-export async function guardApiRoute(path: string) {
+export async function guardApiRoute(path: string, requestId?: string) {
   const session = await getServerSession(authOptions)
   const userRole = session?.user?.role
   
@@ -111,6 +115,8 @@ export async function guardApiRoute(path: string) {
   
   if (!policyResult.allowed) {
     await logEvent('WARN', 'rbac_deny', {
+      requestId,
+      userId: session?.user?.id,
       metadata: {
         path,
         userRole: userRole || 'unauthenticated',

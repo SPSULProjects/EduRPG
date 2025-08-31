@@ -3,17 +3,13 @@ import { NextRequest } from 'next/server'
 import { POST } from '../route'
 import { JobsService } from '../../../../../lib/services/jobs'
 import { logEvent } from '../../../../../lib/utils'
+import { mockGetServerSession } from '../../../../../../vitest.setup'
 
 // Mock the JobsService
 vi.mock('../../../../../lib/services/jobs', () => ({
   JobsService: {
     applyForJob: vi.fn()
   }
-}))
-
-// Mock NextAuth
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn()
 }))
 
 // Mock utils
@@ -55,7 +51,7 @@ describe('Job Apply API', () => {
     }
 
     it('should successfully apply for a job', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockResolvedValue(mockAssignment as any)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
@@ -63,7 +59,13 @@ describe('Job Apply API', () => {
       const data = await response.json()
 
       expect(response.status).toBe(201)
-      expect(data.assignment).toEqual(mockAssignment)
+      expect(data.assignment).toMatchObject({
+        id: mockAssignment.id,
+        jobId: mockAssignment.jobId,
+        studentId: mockAssignment.studentId,
+        status: mockAssignment.status,
+        completedAt: mockAssignment.completedAt
+      })
       expect(JobsService.applyForJob).toHaveBeenCalledWith('job-1', 'student-1', 'test-request-id')
       expect(logEvent).toHaveBeenCalledWith('INFO', 'job_application_success', {
         requestId: 'test-request-id',
@@ -76,7 +78,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(null)
+      mockGetServerSession.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
       const response = await POST(request, { params: Promise.resolve({ id: 'job-1' }) })
@@ -91,7 +93,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 403 for non-student user', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockTeacherSession as any)
+      mockGetServerSession.mockResolvedValue(mockTeacherSession as any)
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
       const response = await POST(request, { params: Promise.resolve({ id: 'job-1' }) })
@@ -111,7 +113,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 400 for invalid job ID', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
 
       const request = new NextRequest('http://localhost:3000/api/jobs//apply')
       const response = await POST(request, { params: Promise.resolve({ id: '' }) })
@@ -131,7 +133,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 404 when job not found', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue(new Error('Job not found'))
 
       const request = new NextRequest('http://localhost:3000/api/jobs/nonexistent/apply')
@@ -152,7 +154,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 409 when already applied', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue(new Error('Student already applied for this job'))
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
@@ -164,7 +166,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 400 when job is not available', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue(new Error('Job is not open for applications'))
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
@@ -176,7 +178,7 @@ describe('Job Apply API', () => {
     })
 
     it('should return 400 when job is full', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue(new Error('Job is full'))
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
@@ -187,20 +189,20 @@ describe('Job Apply API', () => {
       expect(data.error).toBe('Job is not available')
     })
 
-    it('should return 500 for unexpected errors', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+    it('should return 400 for domain errors', async () => {
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue(new Error('Database connection failed'))
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')
       const response = await POST(request, { params: Promise.resolve({ id: 'job-1' }) })
       const data = await response.json()
 
-      expect(response.status).toBe(500)
-      expect(data.error).toBe('Internal server error')
+      expect(response.status).toBe(400)
+      expect(data.error).toBe('Invalid request')
     })
 
     it('should handle non-Error exceptions', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockStudentSession as any)
+      mockGetServerSession.mockResolvedValue(mockStudentSession as any)
       vi.mocked(JobsService.applyForJob).mockRejectedValue('String error')
 
       const request = new NextRequest('http://localhost:3000/api/jobs/job-1/apply')

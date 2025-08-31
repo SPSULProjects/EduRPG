@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "./auth"
 import { UserRole } from "./generated"
+import { logEvent } from "./utils"
 
 export async function getCurrentUser() {
   const session = await getServerSession(authOptions)
@@ -19,24 +20,33 @@ export async function requireAuth() {
   return user
 }
 
-export async function requireRole(roles: UserRole[]) {
+export async function requireRole(roles: UserRole[], requestId?: string) {
   const user = await requireAuth()
   if (!roles.includes(user.role)) {
+    await logEvent('WARN', 'rbac_deny', {
+      requestId,
+      userId: user.id,
+      metadata: {
+        userRole: user.role,
+        requiredRoles: roles,
+        reason: 'Insufficient permissions for server action'
+      }
+    })
     redirect("/unauthorized")
   }
   return user
 }
 
-export async function requireOperator() {
-  return requireRole([UserRole.OPERATOR])
+export async function requireOperator(requestId?: string) {
+  return requireRole([UserRole.OPERATOR], requestId)
 }
 
-export async function requireTeacher() {
-  return requireRole([UserRole.TEACHER, UserRole.OPERATOR])
+export async function requireTeacher(requestId?: string) {
+  return requireRole([UserRole.TEACHER, UserRole.OPERATOR], requestId)
 }
 
-export async function requireStudent() {
-  return requireRole([UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR])
+export async function requireStudent(requestId?: string) {
+  return requireRole([UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR], requestId)
 }
 
 export function canAccessResource(userRole: UserRole, resourceRole: UserRole): boolean {

@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
 import { JobsService } from '@/app/lib/services/jobs'
+import { mockGetServerSession } from '../../../../vitest.setup'
 
 // Mock the JobsService
 vi.mock('@/app/lib/services/jobs', () => ({
@@ -10,11 +11,6 @@ vi.mock('@/app/lib/services/jobs', () => ({
     getJobsForStudent: vi.fn(),
     getJobsForTeacher: vi.fn()
   }
-}))
-
-// Mock NextAuth
-vi.mock('next-auth', () => ({
-  getServerSession: vi.fn()
 }))
 
 describe('Jobs API', () => {
@@ -42,7 +38,7 @@ describe('Jobs API', () => {
         }
       ]
 
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockSession as any)
+      mockGetServerSession.mockResolvedValue(mockSession as any)
       vi.mocked(JobsService.getJobsForStudent).mockResolvedValue(mockJobs)
 
       const request = new NextRequest('http://localhost:3000/api/jobs')
@@ -72,7 +68,7 @@ describe('Jobs API', () => {
         }
       ]
 
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(mockSession as any)
+      mockGetServerSession.mockResolvedValue(mockSession as any)
       vi.mocked(JobsService.getJobsForTeacher).mockResolvedValue(mockJobs)
 
       const request = new NextRequest('http://localhost:3000/api/jobs')
@@ -85,7 +81,7 @@ describe('Jobs API', () => {
     })
 
     it('should return 401 for unauthenticated user', async () => {
-      vi.mocked(require('next-auth').getServerSession).mockResolvedValue(null)
+      mockGetServerSession.mockResolvedValue(null)
 
       const request = new NextRequest('http://localhost:3000/api/jobs')
       const response = await GET(request)
@@ -98,6 +94,13 @@ describe('Jobs API', () => {
 
   describe('POST /api/jobs', () => {
     it('should create a new job', async () => {
+      const mockSession = {
+        user: {
+          id: 'teacher-1',
+          role: 'TEACHER'
+        }
+      }
+
       const mockJob = {
         id: 'job-1',
         title: 'Test Job',
@@ -106,6 +109,7 @@ describe('Jobs API', () => {
         moneyReward: 50
       }
 
+      mockGetServerSession.mockResolvedValue(mockSession as any)
       vi.mocked(JobsService.createJob).mockResolvedValue(mockJob)
 
       const request = new NextRequest('http://localhost:3000/api/jobs', {
@@ -113,7 +117,7 @@ describe('Jobs API', () => {
         body: JSON.stringify({
           title: 'Test Job',
           description: 'Test Description',
-          subjectId: 'subject-1',
+          subjectId: 'clh123456789012345678901234',
           xpReward: 100,
           moneyReward: 50
         })
@@ -127,11 +131,11 @@ describe('Jobs API', () => {
       expect(JobsService.createJob).toHaveBeenCalledWith({
         title: 'Test Job',
         description: 'Test Description',
-        subjectId: 'subject-1',
+        subjectId: 'clh123456789012345678901234',
         xpReward: 100,
         moneyReward: 50,
-        teacherId: expect.any(String)
-      }, undefined)
+        teacherId: 'teacher-1'
+      })
     })
   })
 })

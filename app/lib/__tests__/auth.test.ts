@@ -1,21 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { authOptions } from '../auth'
 import { UserRole } from '../generated'
+import { mockPrisma } from '../../../vitest.setup'
 
 // Mock dependencies
-vi.mock('../prisma', () => ({
-  prisma: {
-    $transaction: vi.fn(),
-    class: {
-      findFirst: vi.fn(),
-      create: vi.fn()
-    },
-    user: {
-      upsert: vi.fn()
-    }
-  }
-}))
-
 vi.mock('../utils', () => ({
   logEvent: vi.fn()
 }))
@@ -51,7 +39,6 @@ describe('Authentication', () => {
 
     it('should handle Bakalari authentication success', async () => {
       const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
-      const { prisma } = await import('../prisma')
       const { logEvent } = await import('../utils')
       
       // Mock successful Bakalari response
@@ -68,7 +55,7 @@ describe('Authentication', () => {
       })
 
       // Mock database operations
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
         const mockTx = {
           class: {
             findFirst: vi.fn().mockResolvedValue({ id: 'class123' }),
@@ -146,7 +133,6 @@ describe('Authentication', () => {
   describe('Role Mapping', () => {
     it('should map student role correctly', async () => {
       const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
-      const { prisma } = await import('../prisma')
       
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
         status: { success: true, loginFailed: false, userDataFailed: false },
@@ -160,7 +146,7 @@ describe('Authentication', () => {
         accessToken: 'test-token'
       })
 
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
         const mockTx = {
           class: {
             findFirst: vi.fn().mockResolvedValue({ id: 'class123' }),
@@ -190,7 +176,6 @@ describe('Authentication', () => {
 
     it('should map teacher role correctly', async () => {
       const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
-      const { prisma } = await import('../prisma')
       
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
         status: { success: true, loginFailed: false, userDataFailed: false },
@@ -204,7 +189,7 @@ describe('Authentication', () => {
         accessToken: 'test-token'
       })
 
-      vi.mocked(prisma.$transaction).mockImplementation(async (callback) => {
+      mockPrisma.$transaction.mockImplementation(async (callback) => {
         const mockTx = {
           class: {
             findFirst: vi.fn(),

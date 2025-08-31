@@ -448,7 +448,7 @@ describe('JobsService', () => {
       })
 
       // Verify system logs were created
-      expect(mockSystemLogCreate).toHaveBeenCalledTimes(2) // Main log + remainder log
+      expect(mockSystemLogCreate).toHaveBeenCalledTimes(1) // Main log only (no assignments = no remainders)
     })
   })
 

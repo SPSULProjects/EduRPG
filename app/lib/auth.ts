@@ -4,7 +4,7 @@ import { prisma } from "./prisma"
 import { UserRole } from "./generated"
 import { z } from "zod"
 import { loginToBakalariAndFetchUserData, BakalariUserData } from "./bakalari/bakalari"
-import { logEvent } from "./utils"
+import { logEvent, getRequestIdFromRequest } from "./utils"
 
 // Validation schema for credentials
 const credentialsSchema = z.object({
@@ -99,7 +99,7 @@ export const authOptions: NextAuthOptions = {
           const validatedCredentials = credentialsSchema.parse(credentials)
           
           // Log authentication attempt (without PII)
-          await logEvent("INFO", "Authentication attempt", {
+          await logEvent("INFO", "auth_attempt", {
             metadata: {
               hasUsername: !!validatedCredentials.username
             }
@@ -113,7 +113,7 @@ export const authOptions: NextAuthOptions = {
 
           if (!bakalariResult.status.success) {
             // Log failed authentication (without PII)
-            await logEvent("WARN", "Authentication failed", {
+            await logEvent("WARN", "auth_fail", {
               metadata: {
                 loginFailed: bakalariResult.status.loginFailed,
                 userDataFailed: bakalariResult.status.userDataFailed
@@ -129,8 +129,10 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!bakalariResult.data) {
-            await logEvent("WARN", "Authentication failed - no user data", {
-              metadata: {}
+            await logEvent("WARN", "auth_fail", {
+              metadata: {
+                reason: "no_user_data"
+              }
             })
             throw new Error("Unable to retrieve user information. Please try again.")
           }
@@ -138,8 +140,10 @@ export const authOptions: NextAuthOptions = {
           // Get the access token from the login response
           const bakalariToken = bakalariResult.accessToken
           if (!bakalariToken) {
-            await logEvent("WARN", "Authentication failed - no token", {
-              metadata: {}
+            await logEvent("WARN", "auth_fail", {
+              metadata: {
+                reason: "no_token"
+              }
             })
             throw new Error("Authentication service unavailable. Please try again later.")
           }
@@ -148,7 +152,7 @@ export const authOptions: NextAuthOptions = {
           const user = await upsertUserFromBakalari(bakalariResult.data, bakalariToken)
 
           // Log successful authentication
-          await logEvent("INFO", "Authentication successful", {
+          await logEvent("INFO", "auth_success", {
             userId: user.id,
             metadata: {
               bakalariId: bakalariResult.data.userID,
@@ -164,7 +168,7 @@ export const authOptions: NextAuthOptions = {
             classId: user.classId || undefined,
           }
         } catch (error) {
-          await logEvent("ERROR", "Authentication error", {
+          await logEvent("ERROR", "auth_error", {
             metadata: {
               error: error instanceof Error ? error.message : "Unknown error"
             }

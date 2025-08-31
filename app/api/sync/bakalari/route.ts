@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   
   try {
     // Check authorization using the guard utility
-    const guardResult = await guardApiRoute('/api/sync/bakalari')
+    const guardResult = await guardApiRoute('/api/sync/bakalari', requestId)
     if (guardResult.error) {
       return NextResponse.json(guardResult.body, { status: guardResult.status })
     }

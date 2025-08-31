@@ -15,13 +15,7 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }))
 
-// Mock NextAuth
-vi.mock('next-auth/react', () => ({
-  useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
-  signIn: vi.fn(),
-  signOut: vi.fn(),
-  getSession: vi.fn(),
-}))
+
 
 // Mock next-auth server with hoisted mock
 const mockGetServerSession = vi.fn()
@@ -32,6 +26,22 @@ vi.mock('next-auth', () => ({
 // Export the mock for use in tests
 export { mockGetServerSession }
 
+// Mock next-auth/react
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn(() => ({ data: null, status: 'unauthenticated' })),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  getSession: vi.fn(),
+}))
+
+// Mock utils
+vi.mock('@/app/lib/utils', () => ({
+  logEvent: vi.fn(),
+  generateRequestId: vi.fn(() => 'test-request-id'),
+  sanitizeForLog: vi.fn((msg: string) => msg),
+  getRequestIdFromRequest: vi.fn(() => 'test-request-id'),
+}))
+
 // Mock Prisma with hoisted mocks
 const mockPrisma = {
   user: {
@@ -39,6 +49,11 @@ const mockPrisma = {
     findMany: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    upsert: vi.fn(),
+  },
+  class: {
+    findFirst: vi.fn(),
+    create: vi.fn(),
   },
   job: {
     findUnique: vi.fn(),

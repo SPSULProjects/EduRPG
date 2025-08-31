@@ -3,16 +3,29 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/lib/auth"
 import { XPService } from "@/app/lib/services/xp"
 import { UserRole } from "@/app/lib/generated"
+import { logEvent, getRequestIdFromRequest } from "@/app/lib/utils"
 
 export async function POST(request: NextRequest) {
+  const requestId = getRequestIdFromRequest(request)
+  let session: any = null
+  
   try {
-    const session = await getServerSession(authOptions)
+    session = await getServerSession(authOptions)
     if (!session?.user) {
+      await logEvent("WARN", "xp_grant_unauthorized", {
+        requestId,
+        metadata: { path: "/api/xp/grant" }
+      })
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
     
     // Only teachers and operators can grant XP
     if (session.user.role !== UserRole.TEACHER && session.user.role !== UserRole.OPERATOR) {
+      await logEvent("WARN", "xp_grant_forbidden", {
+        requestId,
+        userId: session.user.id,
+        metadata: { role: session.user.role }
+      })
       return NextResponse.json({ error: "Forbidden - Only teachers can grant XP" }, { status: 403 })
     }
     
@@ -53,6 +66,18 @@ export async function POST(request: NextRequest) {
       reason
     }, requestId)
     
+    await logEvent("INFO", "xp_grant_success", {
+      requestId,
+      userId: session.user.id,
+      metadata: {
+        studentId,
+        subjectId,
+        amount,
+        reason,
+        auditId: xpAudit.id
+      }
+    })
+    
     return NextResponse.json({
       success: true,
       xpAudit: {
@@ -69,6 +94,11 @@ export async function POST(request: NextRequest) {
     
     // Handle specific budget errors
     if (error.message?.includes("Daily XP budget exceeded")) {
+      await logEvent("WARN", "xp_grant_budget_exceeded", {
+        requestId,
+        userId: session?.user?.id,
+        metadata: { error: error.message }
+      })
       return NextResponse.json({ 
         error: error.message,
         code: "BUDGET_EXCEEDED"
@@ -77,11 +107,22 @@ export async function POST(request: NextRequest) {
     
     // Handle teacher not found errors
     if (error.message?.includes("Teacher not found")) {
+      await logEvent("WARN", "xp_grant_teacher_not_found", {
+        requestId,
+        userId: session?.user?.id,
+        metadata: { error: error.message }
+      })
       return NextResponse.json({ 
         error: error.message,
         code: "TEACHER_NOT_FOUND"
       }, { status: 404 })
     }
+    
+    await logEvent("ERROR", "xp_grant_error", {
+      requestId,
+      userId: session?.user?.id,
+      metadata: { error: error.message || "Unknown error" }
+    })
     
     return NextResponse.json({ 
       error: "Internal server error",
