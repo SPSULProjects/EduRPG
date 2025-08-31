@@ -109,22 +109,36 @@ export class XPService {
   }
   
   static async getStudentXP(studentId: string) {
-    const xpAudits = await prisma.xPAudit.findMany({
-      where: { userId: studentId },
-      orderBy: { createdAt: "desc" }
-    })
-    
-    const totalXP = xpAudits.reduce((sum, audit) => sum + audit.amount, 0)
-    const levelInfo = LevelingSystem.getLevelInfo(totalXP)
-    
-    return {
-      totalXP,
-      level: levelInfo.level,
-      progressToNextLevel: LevelingSystem.getProgressToNextLevel(totalXP),
-      xpForNextLevel: levelInfo.xpForNextLevel,
-      xpNeededForNextLevel: levelInfo.xpRequired,
-      audits: xpAudits,
-      recentGrants: xpAudits.slice(0, 10) // Last 10 grants
+    try {
+      const xpAudits = await prisma.xPAudit.findMany({
+        where: { userId: studentId },
+        orderBy: { createdAt: "desc" }
+      })
+      
+      const totalXP = xpAudits.reduce((sum, audit) => sum + audit.amount, 0)
+      const levelInfo = LevelingSystem.getLevelInfo(totalXP)
+      
+      return {
+        totalXP,
+        level: levelInfo.level,
+        progressToNextLevel: LevelingSystem.getProgressToNextLevel(totalXP),
+        xpForNextLevel: levelInfo.xpForNextLevel,
+        xpNeededForNextLevel: levelInfo.xpRequired,
+        audits: xpAudits,
+        recentGrants: xpAudits.slice(0, 10) // Last 10 grants
+      }
+    } catch (error) {
+      console.error("Error in getStudentXP:", error)
+      // Return default values on error
+      return {
+        totalXP: 0,
+        level: 1,
+        progressToNextLevel: 0,
+        xpForNextLevel: 0,
+        xpNeededForNextLevel: 100,
+        audits: [],
+        recentGrants: []
+      }
     }
   }
   

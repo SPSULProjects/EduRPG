@@ -19,12 +19,12 @@ export default async function DashboardPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Vítejte, {session.user.name}!
+            Vítejte, {session.user?.name || "Uživateli"}!
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
             Role: {
-              session.user.role === UserRole.STUDENT ? "Student" :
-              session.user.role === UserRole.TEACHER ? "Učitel" :
+              session.user?.role === UserRole.STUDENT ? "Student" :
+              session.user?.role === UserRole.TEACHER ? "Učitel" :
               "Operátor"
             }
           </p>
@@ -32,16 +32,23 @@ export default async function DashboardPage() {
       </div>
       
       {/* Role-specific Dashboard */}
-      {session.user.role === UserRole.STUDENT && (
+      {session.user?.role === UserRole.STUDENT && session.user?.id && (
         <StudentDashboard userId={session.user.id} classId={session.user.classId} />
       )}
       
-      {session.user.role === UserRole.TEACHER && (
+      {session.user?.role === UserRole.TEACHER && session.user?.id && (
         <TeacherDashboard userId={session.user.id} />
       )}
       
-      {session.user.role === UserRole.OPERATOR && (
+      {session.user?.role === UserRole.OPERATOR && session.user?.id && (
         <OperatorDashboard userId={session.user.id} />
+      )}
+      
+      {/* Fallback for unknown roles or missing user data */}
+      {(!session.user?.role || !session.user?.id) && (
+        <div className="text-center py-8">
+          <p className="text-gray-500">Loading user information...</p>
+        </div>
       )}
     </div>
   )

@@ -321,46 +321,56 @@ export class JobsService {
   }
   
   static async getJobsForStudent(studentId: string, classId?: string) {
-    return await prisma.job.findMany({
-      where: {
-        status: JobStatus.OPEN,
-        subject: {
-          enrollments: {
-            some: {
-              userId: studentId,
-              ...(classId && { classId })
+    try {
+      return await prisma.job.findMany({
+        where: {
+          status: JobStatus.OPEN,
+          subject: {
+            enrollments: {
+              some: {
+                userId: studentId,
+                ...(classId && { classId })
+              }
             }
           }
-        }
-      },
-      include: {
-        subject: true,
-        teacher: {
-          select: { name: true }
         },
-        assignments: {
-          where: { studentId }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    })
+        include: {
+          subject: true,
+          teacher: {
+            select: { name: true }
+          },
+          assignments: {
+            where: { studentId }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      })
+    } catch (error) {
+      console.error("Error in getJobsForStudent:", error)
+      return []
+    }
   }
   
   static async getJobsForTeacher(teacherId: string) {
-    return await prisma.job.findMany({
-      where: { teacherId },
-      include: {
-        subject: true,
-        assignments: {
-          include: {
-            student: {
-              select: { name: true, email: true }
+    try {
+      return await prisma.job.findMany({
+        where: { teacherId },
+        include: {
+          subject: true,
+          assignments: {
+            include: {
+              student: {
+                select: { name: true, email: true }
+              }
             }
           }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    })
+        },
+        orderBy: { createdAt: "desc" }
+      })
+    } catch (error) {
+      console.error("Error in getJobsForTeacher:", error)
+      return []
+    }
   }
   
   static async getJobsForClass(classId: string, userId: string, userRole: string) {

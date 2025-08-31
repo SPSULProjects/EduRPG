@@ -22,16 +22,16 @@ interface PolicyModalProps {
 }
 
 export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
-  const { data: session } = useSession()
+  const session = useSession()
   const [isAcknowledging, setIsAcknowledging] = useState(false)
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
 
   const handleAcknowledge = async () => {
-    if (!session?.user?.id) return
+    if (!session.data?.user?.id) return
 
     try {
       setIsAcknowledging(true)
-      await acknowledgePolicy(session.user.id)
+      await acknowledgePolicy(session.data.user.id)
       setHasAcknowledged(true)
       onClose()
     } catch (error) {
@@ -163,24 +163,24 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
           </Card>
 
           {/* Role-specific information */}
-          {session?.user?.role && (
+          {session.data?.user?.role && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
                 <h3 className="font-medium text-blue-900 mb-2">
                   Vaše role: {
-                    session.user.role === "STUDENT" ? "Student" :
-                    session.user.role === "TEACHER" ? "Učitel" :
+                    session.data.user.role === "STUDENT" ? "Student" :
+                    session.data.user.role === "TEACHER" ? "Učitel" :
                     "Operátor"
                   }
                 </h3>
                 <p className="text-sm text-blue-800">
-                  {session.user.role === "STUDENT" && 
+                  {session.data.user.role === "STUDENT" && 
                     "Můžete se přihlašovat k úkolům, získávat XP a účastnit se událostí."
                   }
-                  {session.user.role === "TEACHER" && 
+                  {session.data.user.role === "TEACHER" && 
                     "Můžete vytvářet úkoly, udělovat XP a spravovat své třídy."
                   }
-                  {session.user.role === "OPERATOR" && 
+                  {session.data.user.role === "OPERATOR" && 
                     "Máte přístup ke všem systémovým funkcím a můžete spravovat platformu."
                   }
                 </p>
