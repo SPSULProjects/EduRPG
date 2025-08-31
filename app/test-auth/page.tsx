@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 
 export default function TestAuthPage() {
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession() || { data: null, status: 'unauthenticated' }
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)

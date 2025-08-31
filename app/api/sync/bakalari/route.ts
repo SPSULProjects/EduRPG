@@ -1,41 +1,34 @@
 import { NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/lib/auth"
 import { syncBakalariData } from "@/app/lib/services/sync-bakalari"
-import { UserRole } from "@/app/lib/generated"
 import { prisma } from "@/app/lib/prisma"
+import { guardApiRoute } from "@/app/lib/auth/guards"
 
 export async function POST(request: NextRequest) {
   const requestId = crypto.randomUUID()
   
   try {
-    // Check authentication
-    const session = await getServerSession(authOptions)
-    if (!session) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      )
+    // Check authorization using the guard utility
+    const guardResult = await guardApiRoute('/api/sync/bakalari')
+    if (guardResult.error) {
+      return NextResponse.json(guardResult.body, { status: guardResult.status })
     }
-
-    // Check authorization - only operators can trigger sync
-    if (session.user.role !== UserRole.OPERATOR) {
-      return NextResponse.json(
-        { error: "Forbidden - Only operators can trigger sync" },
-        { status: 403 }
-      )
-    }
+    
+    const { user } = guardResult
 
     // Get a valid Bakalari token for sync
     // In a real implementation, you might want to use a service account
     // or get the token from an operator's session
     const operator = await prisma.user.findUnique({
-      where: { id: session.user.id }
+      where: { id: user?.id }
     })
 
     if (!operator?.bakalariToken) {
       return NextResponse.json(
-        { error: "No valid Bakalari token available for sync" },
+        { 
+          code: 'MISSING_TOKEN',
+          message: "No valid Bakalari token available for sync",
+          requestId 
+        },
         { status: 400 }
       )
     }
@@ -43,21 +36,38 @@ export async function POST(request: NextRequest) {
     // Trigger sync
     const syncResult = await syncBakalariData(operator.bakalariToken, {
       requestId,
-      operatorId: session.user.id
+      operatorId: user?.id
     })
 
     if (syncResult.success) {
       return NextResponse.json({
         success: true,
+        runId: syncResult.runId,
+        startedAt: syncResult.startedAt,
+        completedAt: syncResult.completedAt,
+        durationMs: syncResult.durationMs,
+        result: {
+          classesCreated: syncResult.classesCreated,
+          classesUpdated: syncResult.classesUpdated,
+          usersCreated: syncResult.usersCreated,
+          usersUpdated: syncResult.usersUpdated,
+          subjectsCreated: syncResult.subjectsCreated,
+          subjectsUpdated: syncResult.subjectsUpdated,
+          enrollmentsCreated: syncResult.enrollmentsCreated,
+          enrollmentsUpdated: syncResult.enrollmentsUpdated
+        },
         requestId,
-        result: syncResult,
         timestamp: new Date().toISOString()
       })
     } else {
       return NextResponse.json({
         success: false,
-        requestId,
+        runId: syncResult.runId,
+        startedAt: syncResult.startedAt,
+        completedAt: syncResult.completedAt,
+        durationMs: syncResult.durationMs,
         errors: syncResult.errors,
+        requestId,
         timestamp: new Date().toISOString()
       }, { status: 500 })
     }
@@ -67,8 +77,9 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({
       success: false,
+      code: 'INTERNAL_ERROR',
+      message: "Internal server error",
       requestId,
-      error: "Internal server error",
       timestamp: new Date().toISOString()
     }, { status: 500 })
   }

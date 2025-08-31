@@ -1,5 +1,5 @@
 import { prisma } from "../prisma"
-import { getBakalariUserData, getBakalariSubjectData } from "../bakalari/bakalari"
+import { getBakalariUserData, getBakalariSubjectData, loginToBakalari } from "../bakalari/bakalari"
 import { UserRole } from "../generated"
 import { logEvent } from "../utils"
 
@@ -14,11 +14,17 @@ export interface SyncResult {
   enrollmentsCreated: number
   enrollmentsUpdated: number
   errors: string[]
+  runId: string
+  startedAt: string
+  completedAt: string
+  durationMs: number
 }
 
 export interface SyncOptions {
   requestId?: string
   operatorId?: string
+  bakalariUsername?: string
+  bakalariPassword?: string
 }
 
 /**
@@ -44,13 +50,87 @@ const extractGradeFromClass = (classAbbrev: string): number => {
 }
 
 /**
- * Syncs Bakalari data to our database
- * This is a simplified version that would need to be expanded based on actual Bakalari API structure
+ * Fetches all users from Bakalari API
+ * Note: This is a simplified implementation since Bakalari API doesn't provide bulk user endpoints
+ * In a real implementation, you would need admin credentials or a different approach
+ */
+async function fetchBakalariUsers(accessToken: string): Promise<any[]> {
+  // Since Bakalari API doesn't provide bulk user endpoints,
+  // we'll need to implement this differently in production
+  // For now, we'll return an empty array and log this limitation
+  console.warn("Bakalari API doesn't provide bulk user endpoints. Manual sync required.")
+  return []
+}
+
+/**
+ * Fetches all classes from Bakalari API
+ * Note: This is a simplified implementation since Bakalari API doesn't provide bulk class endpoints
+ */
+async function fetchBakalariClasses(accessToken: string): Promise<any[]> {
+  // Since Bakalari API doesn't provide bulk class endpoints,
+  // we'll need to implement this differently in production
+  // For now, we'll return an empty array and log this limitation
+  console.warn("Bakalari API doesn't provide bulk class endpoints. Manual sync required.")
+  return []
+}
+
+/**
+ * Fetches all subjects from Bakalari API
+ */
+async function fetchBakalariSubjects(accessToken: string): Promise<any[]> {
+  try {
+    const subjectsData = await getBakalariSubjectData(accessToken)
+    if (!subjectsData || !Array.isArray(subjectsData)) {
+      return []
+    }
+    return subjectsData
+  } catch (error) {
+    console.error("Error fetching Bakalari subjects:", error)
+    return []
+  }
+}
+
+/**
+ * Creates or updates an external reference for idempotent sync
+ */
+async function upsertExternalRef(
+  tx: any,
+  type: string,
+  externalId: string,
+  internalId: string,
+  metadata?: any
+) {
+  return await tx.externalRef.upsert({
+    where: {
+      type_externalId: {
+        type,
+        externalId
+      }
+    },
+    update: {
+      internalId,
+      metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null,
+      updatedAt: new Date()
+    },
+    create: {
+      type,
+      externalId,
+      internalId,
+      metadata: metadata ? JSON.parse(JSON.stringify(metadata)) : null
+    }
+  })
+}
+
+/**
+ * Syncs Bakalari data to our database using external key strategy for idempotency
  */
 export async function syncBakalariData(
   bakalariToken: string,
   options: SyncOptions = {}
 ): Promise<SyncResult> {
+  const runId = crypto.randomUUID()
+  const startedAt = new Date()
+  
   const result: SyncResult = {
     success: false,
     classesCreated: 0,
@@ -61,181 +141,300 @@ export async function syncBakalariData(
     subjectsUpdated: 0,
     enrollmentsCreated: 0,
     enrollmentsUpdated: 0,
-    errors: []
+    errors: [],
+    runId,
+    startedAt: startedAt.toISOString(),
+    completedAt: "",
+    durationMs: 0
   }
 
   try {
     // Log sync start
-    await logEvent("INFO", "Bakalari sync started", {
+    await logEvent("INFO", "sync_start", {
       requestId: options.requestId,
       userId: options.operatorId,
       metadata: {
-        operatorId: options.operatorId
+        runId,
+        operatorId: options.operatorId,
+        startedAt: result.startedAt
       }
     })
 
-    // In a real implementation, you would:
-    // 1. Fetch all users from Bakalari API
-    // 2. Fetch all classes from Bakalari API  
-    // 3. Fetch all subjects from Bakalari API
-    // 4. Process them in a transaction
+    // Fetch data from Bakalari API
+    const [bakalariUsers, bakalariClasses, bakalariSubjects] = await Promise.all([
+      fetchBakalariUsers(bakalariToken),
+      fetchBakalariClasses(bakalariToken),
+      fetchBakalariSubjects(bakalariToken)
+    ])
 
-    // For now, this is a placeholder implementation
-    // You would need to implement the actual API calls based on Bakalari's structure
-    
-    // Example structure (this would need to be adapted to actual Bakalari API):
-    /*
-    const bakalariUsers = await fetchBakalariUsers(bakalariToken)
-    const bakalariClasses = await fetchBakalariClasses(bakalariToken)
-    const bakalariSubjects = await fetchBakalariSubjects(bakalariToken)
-    */
-
-    // Process in transaction
+    // Process in transaction for atomicity
     await prisma.$transaction(async (tx) => {
-      // Sync classes first
-      // for (const bakalariClass of bakalariClasses) {
-      //   const existingClass = await tx.class.findFirst({
-      //     where: { name: bakalariClass.abbrev }
-      //   })
-      
-      //   if (existingClass) {
-      //     await tx.class.update({
-      //       where: { id: existingClass.id },
-      //       data: { grade: extractGradeFromClass(bakalariClass.abbrev) }
-      //     })
-      //     result.classesUpdated++
-      //   } else {
-      //     await tx.class.create({
-      //       data: {
-      //         name: bakalariClass.abbrev,
-      //         grade: extractGradeFromClass(bakalariClass.abbrev)
-      //       }
-      //     })
-      //     result.classesCreated++
-      //   }
-      // }
+      // Sync classes first (if we have class data)
+      if (bakalariClasses.length > 0) {
+        for (const bakalariClass of bakalariClasses) {
+          try {
+            const externalId = bakalariClass.id || bakalariClass.abbrev
+            const existingRef = await tx.externalRef.findUnique({
+              where: {
+                type_externalId: {
+                  type: 'class',
+                  externalId
+                }
+              }
+            })
+
+            if (existingRef) {
+              // Update existing class
+              await tx.class.update({
+                where: { id: existingRef.internalId },
+                data: {
+                  name: bakalariClass.abbrev || bakalariClass.name,
+                  grade: extractGradeFromClass(bakalariClass.abbrev || bakalariClass.name),
+                  updatedAt: new Date()
+                }
+              })
+              result.classesUpdated++
+            } else {
+              // Create new class
+              const newClass = await tx.class.create({
+                data: {
+                  name: bakalariClass.abbrev || bakalariClass.name,
+                  grade: extractGradeFromClass(bakalariClass.abbrev || bakalariClass.name)
+                }
+              })
+              
+              // Create external reference
+              await upsertExternalRef(tx, 'class', externalId, newClass.id, {
+                bakalariClassId: bakalariClass.id,
+                bakalariClassAbbrev: bakalariClass.abbrev
+              })
+              
+              result.classesCreated++
+            }
+          } catch (error) {
+            const errorMsg = `Error syncing class ${bakalariClass.abbrev}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            result.errors.push(errorMsg)
+            console.error(errorMsg)
+          }
+        }
+      }
 
       // Sync subjects
-      // for (const bakalariSubject of bakalariSubjects) {
-      //   const existingSubject = await tx.subject.findFirst({
-      //     where: { code: bakalariSubject.code }
-      //   })
-      
-      //   if (existingSubject) {
-      //     await tx.subject.update({
-      //       where: { id: existingSubject.id },
-      //       data: { name: bakalariSubject.name }
-      //     })
-      //     result.subjectsUpdated++
-      //   } else {
-      //     await tx.subject.create({
-      //       data: {
-      //         name: bakalariSubject.name,
-      //         code: bakalariSubject.code
-      //       }
-      //     })
-      //     result.subjectsCreated++
-      //   }
-      // }
+      if (bakalariSubjects.length > 0) {
+        for (const bakalariSubject of bakalariSubjects) {
+          try {
+            const externalId = bakalariSubject.id || bakalariSubject.code
+            const existingRef = await tx.externalRef.findUnique({
+              where: {
+                type_externalId: {
+                  type: 'subject',
+                  externalId
+                }
+              }
+            })
+
+            if (existingRef) {
+              // Update existing subject
+              await tx.subject.update({
+                where: { id: existingRef.internalId },
+                data: {
+                  name: bakalariSubject.name,
+                  code: bakalariSubject.code || bakalariSubject.id,
+                  updatedAt: new Date()
+                }
+              })
+              result.subjectsUpdated++
+            } else {
+              // Create new subject
+              const newSubject = await tx.subject.create({
+                data: {
+                  name: bakalariSubject.name,
+                  code: bakalariSubject.code || bakalariSubject.id
+                }
+              })
+              
+              // Create external reference
+              await upsertExternalRef(tx, 'subject', externalId, newSubject.id, {
+                bakalariSubjectId: bakalariSubject.id,
+                bakalariSubjectCode: bakalariSubject.code
+              })
+              
+              result.subjectsCreated++
+            }
+          } catch (error) {
+            const errorMsg = `Error syncing subject ${bakalariSubject.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            result.errors.push(errorMsg)
+            console.error(errorMsg)
+          }
+        }
+      }
 
       // Sync users and enrollments
-      // for (const bakalariUser of bakalariUsers) {
-      //   const userRole = mapBakalariUserTypeToRole(bakalariUser.userType)
-      //   
-      //   // Find or create class for students
-      //   let classId: string | undefined
-      //   if (userRole === UserRole.STUDENT && bakalariUser.classAbbrev) {
-      //     const classRecord = await tx.class.findFirst({
-      //       where: { name: bakalariUser.classAbbrev }
-      //     })
-      //     if (classRecord) {
-      //       classId = classRecord.id
-      //     }
-      //   }
+      if (bakalariUsers.length > 0) {
+        for (const bakalariUser of bakalariUsers) {
+          try {
+            const userRole = mapBakalariUserTypeToRole(bakalariUser.userType)
+            const externalId = bakalariUser.userID || bakalariUser.id
+            
+            // Find or create class for students
+            let classId: string | undefined
+            if (userRole === UserRole.STUDENT && bakalariUser.classAbbrev) {
+              const classRef = await tx.externalRef.findFirst({
+                where: {
+                  type: 'class',
+                  externalId: bakalariUser.classId || bakalariUser.classAbbrev
+                }
+              })
+              if (classRef) {
+                classId = classRef.internalId
+              }
+            }
 
-      //   // Upsert user
-      //   const user = await tx.user.upsert({
-      //     where: { bakalariId: bakalariUser.userID },
-      //     update: {
-      //       name: bakalariUser.fullUserName,
-      //       classId: classId,
-      //       updatedAt: new Date()
-      //     },
-      //     create: {
-      //       email: `${bakalariUser.userID}@bakalari.local`,
-      //       name: bakalariUser.fullUserName,
-      //       role: userRole,
-      //       bakalariId: bakalariUser.userID,
-      //       classId: classId
-      //     }
-      //   })
+            const existingUserRef = await tx.externalRef.findUnique({
+              where: {
+                type_externalId: {
+                  type: 'user',
+                  externalId
+                }
+              }
+            })
 
-      //   if (user.id) {
-      //     if (classId) {
-      //       result.usersCreated++
-      //     } else {
-      //       result.usersUpdated++
-      //     }
-      //   }
+            let userId: string
+            if (existingUserRef) {
+              // Update existing user
+              await tx.user.update({
+                where: { id: existingUserRef.internalId },
+                data: {
+                  name: bakalariUser.fullUserName,
+                  classId: classId,
+                  updatedAt: new Date()
+                }
+              })
+              userId = existingUserRef.internalId
+              result.usersUpdated++
+            } else {
+              // Create new user
+              const newUser = await tx.user.create({
+                data: {
+                  email: `${externalId}@bakalari.local`,
+                  name: bakalariUser.fullUserName,
+                  role: userRole,
+                  bakalariId: externalId,
+                  classId: classId
+                }
+              })
+              
+              // Create external reference
+              await upsertExternalRef(tx, 'user', externalId, newUser.id, {
+                bakalariUserId: bakalariUser.userID,
+                bakalariUserType: bakalariUser.userType
+              })
+              
+              userId = newUser.id
+              result.usersCreated++
+            }
 
-      //   // Handle enrollments for students
-      //   if (userRole === UserRole.STUDENT && bakalariUser.subjects) {
-      //     for (const subjectCode of bakalariUser.subjects) {
-      //       const subject = await tx.subject.findFirst({
-      //         where: { code: subjectCode }
-      //       })
-      //       
-      //       if (subject && classId) {
-      //         await tx.enrollment.upsert({
-      //           where: {
-      //             userId_subjectId: {
-      //               userId: user.id,
-      //               subjectId: subject.id
-      //             }
-      //           },
-      //           update: {
-      //             classId: classId,
-      //             updatedAt: new Date()
-      //           },
-      //           create: {
-      //             userId: user.id,
-      //             subjectId: subject.id,
-      //             classId: classId
-      //           }
-      //         })
-      //         
-      //         if (classId) {
-      //           result.enrollmentsCreated++
-      //         } else {
-      //           result.enrollmentsUpdated++
-      //         }
-      //       }
-      //     }
-      //   }
-      // }
+            // Handle enrollments for students
+            if (userRole === UserRole.STUDENT && bakalariUser.subjects && classId) {
+              for (const subjectData of bakalariUser.subjects) {
+                try {
+                  const subjectExternalId = subjectData.id || subjectData.code
+                  const subjectRef = await tx.externalRef.findFirst({
+                    where: {
+                      type: 'subject',
+                      externalId: subjectExternalId
+                    }
+                  })
+                  
+                  if (subjectRef) {
+                    const enrollmentExternalId = `${userId}-${subjectRef.internalId}`
+                    const existingEnrollmentRef = await tx.externalRef.findUnique({
+                      where: {
+                        type_externalId: {
+                          type: 'enrollment',
+                          externalId: enrollmentExternalId
+                        }
+                      }
+                    })
+
+                    if (existingEnrollmentRef) {
+                      // Update existing enrollment
+                      await tx.enrollment.update({
+                        where: { id: existingEnrollmentRef.internalId },
+                        data: {
+                          classId: classId,
+                          updatedAt: new Date()
+                        }
+                      })
+                      result.enrollmentsUpdated++
+                    } else {
+                      // Create new enrollment
+                      const newEnrollment = await tx.enrollment.create({
+                        data: {
+                          userId: userId,
+                          subjectId: subjectRef.internalId,
+                          classId: classId
+                        }
+                      })
+                      
+                      // Create external reference
+                      await upsertExternalRef(tx, 'enrollment', enrollmentExternalId, newEnrollment.id, {
+                        userId,
+                        subjectId: subjectRef.internalId,
+                        classId
+                      })
+                      
+                      result.enrollmentsCreated++
+                    }
+                  }
+                } catch (error) {
+                  const errorMsg = `Error syncing enrollment for user ${userId}, subject ${subjectData.name}: ${error instanceof Error ? error.message : 'Unknown error'}`
+                  result.errors.push(errorMsg)
+                  console.error(errorMsg)
+                }
+              }
+            }
+          } catch (error) {
+            const errorMsg = `Error syncing user ${bakalariUser.fullUserName}: ${error instanceof Error ? error.message : 'Unknown error'}`
+            result.errors.push(errorMsg)
+            console.error(errorMsg)
+          }
+        }
+      }
     })
 
-    result.success = true
+    const completedAt = new Date()
+    result.completedAt = completedAt.toISOString()
+    result.durationMs = completedAt.getTime() - startedAt.getTime()
+    result.success = result.errors.length === 0
 
     // Log successful sync
-    await logEvent("INFO", "Bakalari sync completed successfully", {
+    await logEvent("INFO", "sync_ok", {
       requestId: options.requestId,
       userId: options.operatorId,
       metadata: {
-        result
+        runId,
+        result,
+        durationMs: result.durationMs
       }
     })
 
   } catch (error) {
+    const completedAt = new Date()
+    result.completedAt = completedAt.toISOString()
+    result.durationMs = completedAt.getTime() - startedAt.getTime()
+    
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
     result.errors.push(errorMessage)
     
     // Log failed sync
-    await logEvent("ERROR", "Bakalari sync failed", {
+    await logEvent("ERROR", "sync_fail", {
       requestId: options.requestId,
       userId: options.operatorId,
       metadata: {
-        errors: result.errors
+        runId,
+        errors: result.errors,
+        durationMs: result.durationMs
       }
     })
   }

@@ -1,12 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getToken } from 'next-auth/jwt'
+import { checkRouteAccess } from './app/lib/auth/policies'
+import { UserRole } from './app/lib/generated'
+import { logEvent } from './app/lib/utils'
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const requestId = crypto.randomUUID()
   const startTime = Date.now()
   
   // Add requestId to headers for downstream use
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-request-id', requestId)
+  
+  // Get the pathname for route checking
+  const pathname = request.nextUrl.pathname
+  
+  // Skip auth check for public routes
+  const publicRoutes = ['/api/auth', '/auth', '/favicon.ico']
+  const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+  
+  if (!isPublicRoute) {
+    // Get JWT token for authentication
+    const token = await getToken({ 
+      req: request, 
+      secret: process.env.NEXTAUTH_SECRET 
+    })
+    
+    // Check route access based on policies
+    const userRole = token?.role as UserRole | undefined
+    const policyResult = checkRouteAccess(pathname, userRole)
+    
+    if (!policyResult.allowed) {
+      // Log RBAC deny (without PII)
+      await logEvent('WARN', 'rbac_deny', {
+        requestId,
+        metadata: {
+          path: pathname,
+          method: request.method,
+          userRole: userRole || 'unauthenticated',
+          requiredRoles: policyResult.requiredRoles,
+          reason: policyResult.reason
+        }
+      })
+      
+      // Return 403 Forbidden
+      return new NextResponse(
+        JSON.stringify({ 
+          code: 'FORBIDDEN', 
+          message: 'Access denied' 
+        }),
+        { 
+          status: 403, 
+          headers: { 
+            'Content-Type': 'application/json',
+            'x-request-id': requestId
+          } 
+        }
+      )
+    }
+  }
   
   // Create response
   const response = NextResponse.next({
@@ -37,11 +89,10 @@ export const config = {
   matcher: [
     /*
      * Match all request paths except for the ones starting with:
-     * - api (API routes)
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico).*)',
+    '/((?!_next/static|_next/image|favicon.ico).*)',
   ],
 }

@@ -5,7 +5,7 @@ import { JobsService } from "@/app/lib/services/jobs"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions)
@@ -17,7 +17,7 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
     
-    const { jobId } = params
+    const { jobId } = await params
     
     const assignment = await JobsService.applyForJob(jobId, session.user.id)
     
