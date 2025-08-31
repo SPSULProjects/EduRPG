@@ -8,9 +8,11 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// Graceful shutdown
-process.on('beforeExit', async () => {
-  await prisma.$disconnect()
-})
+// Graceful shutdown - only in Node.js environment
+if (typeof process !== 'undefined' && process.on) {
+  process.on('beforeExit', async () => {
+    await prisma.$disconnect()
+  })
+}
 
 export default prisma
