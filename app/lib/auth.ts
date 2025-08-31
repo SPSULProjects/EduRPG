@@ -30,6 +30,7 @@ const mapBakalariUserTypeToRole = (userType: string): UserRole => {
 // Helper function to create or update user from Bakalari data
 const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariToken: string) => {
   try {
+    console.log("Starting user upsert with bakalariId:", bakalariData.userID)
     // Use transaction for atomicity and performance
     return await prisma.$transaction(async (tx) => {
       // Find or create class if user is a student
@@ -53,6 +54,7 @@ const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariTo
       }
 
       // Create or update user
+      console.log("Upserting user with bakalariId:", bakalariData.userID)
       const user = await tx.user.upsert({
         where: { bakalariId: bakalariData.userID },
         update: {
@@ -71,6 +73,7 @@ const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariTo
         }
       })
 
+      console.log("User upsert successful:", { id: user.id, name: user.name, role: user.role })
       return user
     })
   } catch (error) {
@@ -114,10 +117,18 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Authenticate with Bakalari API
+          console.log("Calling Bakalari authentication...")
           const bakalariResult = await loginToBakalariAndFetchUserData(
             validatedCredentials.username,
             validatedCredentials.password
           )
+          console.log("Bakalari result:", {
+            success: bakalariResult.status.success,
+            loginFailed: bakalariResult.status.loginFailed,
+            userDataFailed: bakalariResult.status.userDataFailed,
+            hasData: !!bakalariResult.data,
+            hasToken: !!bakalariResult.accessToken
+          })
 
           if (!bakalariResult.status.success) {
             // Log failed authentication (without PII)
@@ -165,7 +176,14 @@ export const authOptions: NextAuthOptions = {
           }
 
           // Create or update user in our database
+          console.log("Creating/updating user in database with data:", {
+            userID: bakalariResult.data.userID,
+            fullUserName: bakalariResult.data.fullUserName,
+            userType: bakalariResult.data.userType,
+            classAbbrev: bakalariResult.data.classAbbrev
+          })
           const user = await upsertUserFromBakalari(bakalariResult.data, bakalariToken)
+          console.log("User created/updated:", user)
 
           // Log successful authentication
           try {

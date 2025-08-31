@@ -164,6 +164,7 @@ export const getBakalariUserData = async (
     accessToken: string
 ): Promise<BakalariUserData | null> => {
     try {
+        console.log("Fetching user data from:", new URL("/api/3/user", bakalariURL).toString())
         const response = await fetch(new URL("/api/3/user", bakalariURL).toString(), {
             method: "GET",
             headers: {
@@ -179,10 +180,15 @@ export const getBakalariUserData = async (
             cache: "no-store"
         });
 
+        console.log("User data response status:", response.status)
+        
         if (response.ok) {
             const data: IBakalariUserDataPayload = await response.json();
+            console.log("User data received:", data)
             return new BakalariUserData(data);
         } else {
+            const errorText = await response.text()
+            console.log("User data fetch failed:", response.status, errorText)
             return null;
         }
     } catch (error) {
@@ -244,8 +250,12 @@ export const loginToBakalariAndFetchUserData = async (
             );
         }
 
+        console.log("Login successful, fetching user data...")
         const userDataResponse = await getBakalariUserData(loginResponse.accessToken);
+        console.log("User data response:", userDataResponse)
+        
         if (!userDataResponse || !userDataResponse.userType) {
+            console.log("User data fetch failed or invalid user type")
             return new BakalariLoginReturn(
                 new BakalariLoginStatus(false, false, true),
                 null,
@@ -253,14 +263,13 @@ export const loginToBakalariAndFetchUserData = async (
             );
         }
 
+        console.log("User data successful, fetching subject data...")
         const getBakalariSubjectDataResponse = await getBakalariSubjectData(loginResponse.accessToken);
+        console.log("Subject data response:", getBakalariSubjectDataResponse ? "success" : "failed")
 
+        // Subject data is optional, don't fail if it's not available
         if(!getBakalariSubjectDataResponse) {
-            return new BakalariLoginReturn(
-                new BakalariLoginStatus(false, false, true),
-                null,
-                null
-            );
+            console.log("Subject data not available, continuing without it")
         }
 
         let userRole: string | null = null;
