@@ -1,0 +1,1 @@
+export default function Dashboard(){return(<main>Dashboard placeholder</main>)}
