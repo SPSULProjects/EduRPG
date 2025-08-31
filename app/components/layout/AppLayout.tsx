@@ -47,12 +47,24 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  const { data: session } = useSession()
+  const session = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  if (!session?.user) {
+  // Handle loading state
+  if (session.status === "loading") {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
+  // Handle unauthenticated state
+  if (session.status === "unauthenticated" || !session.data?.user) {
     return <div>{children}</div>
   }
+
+  const { data: sessionData } = session
 
   const { level } = calculateLevel(0) // TODO: Get actual XP from session or context
 
@@ -66,7 +78,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     ]
 
-    switch (session.user.role) {
+    switch (sessionData.user.role) {
       case UserRole.STUDENT:
         return [
           ...baseItems,
@@ -274,16 +286,16 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {session.user.name}
+                    {sessionData.user.name}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {session.user.role === UserRole.STUDENT && "Student"}
-                    {session.user.role === UserRole.TEACHER && "Učitel"}
-                    {session.user.role === UserRole.OPERATOR && "Operátor"}
+                    {sessionData.user.role === UserRole.STUDENT && "Student"}
+                    {sessionData.user.role === UserRole.TEACHER && "Učitel"}
+                    {sessionData.user.role === UserRole.OPERATOR && "Operátor"}
                   </p>
                 </div>
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src="" alt={session.user.name} />
+                  <AvatarImage src="" alt={sessionData.user.name} />
                   <AvatarFallback>
                     <User className="w-4 h-4" />
                   </AvatarFallback>
