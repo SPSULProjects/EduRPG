@@ -377,6 +377,7 @@ export class JobsService {
       whereClause.status = JobStatus.OPEN
     }
     
+    // Optimized query to avoid N+1 by fetching all assignments in one go
     return await prisma.job.findMany({
       where: whereClause,
       include: {
