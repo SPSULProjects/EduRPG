@@ -118,6 +118,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             active: false
           },
           {
+            title: "Obchod",
+            icon: ShoppingCart,
+            href: "/shop",
+            active: false
+          },
+          {
             title: "Události",
             icon: Calendar,
             href: "/events",
@@ -132,6 +138,12 @@ export function AppLayout({ children }: AppLayoutProps) {
             title: "Synchronizace",
             icon: Database,
             href: "/sync",
+            active: false
+          },
+          {
+            title: "Obchod",
+            icon: ShoppingCart,
+            href: "/shop",
             active: false
           },
           {

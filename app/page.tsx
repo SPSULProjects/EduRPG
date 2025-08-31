@@ -4,6 +4,8 @@ import { authOptions } from "@/app/lib/auth"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Sword, Trophy, Users, Target } from "lucide-react"
+import { LoginButtons } from "@/app/components/LoginButtons"
+import { CTAButton } from "@/app/components/CTAButton"
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
@@ -23,19 +25,12 @@ export default async function HomePage() {
           <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
             Transformujte vzdělávání pomocí gamifikace. Úkoly, XP, úspěchy a RPG zážitek pro studenty i učitele.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button size="lg" className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700">
-              Přihlásit se
-            </Button>
-            <Button size="lg" variant="outline">
-              Zjistit více
-            </Button>
-          </div>
+          <LoginButtons />
         </div>
       </div>
 
       {/* Features Section */}
-      <div className="container mx-auto px-6 py-16">
+      <div id="features" className="container mx-auto px-6 py-16">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <Card className="text-center hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -97,9 +92,7 @@ export default async function HomePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Button size="lg" variant="secondary" className="bg-white text-blue-600 hover:bg-gray-100">
-              Začít nyní
-            </Button>
+            <CTAButton />
           </CardContent>
         </Card>
       </div>

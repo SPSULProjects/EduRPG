@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Only teachers and operators can grant XP
-    if (![UserRole.TEACHER, UserRole.OPERATOR].includes(session.user.role)) {
+    if (session.user.role !== UserRole.TEACHER && session.user.role !== UserRole.OPERATOR) {
       return NextResponse.json({ error: "Forbidden - Only teachers can grant XP" }, { status: 403 })
     }
     

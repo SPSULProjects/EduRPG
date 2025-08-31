@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getToken } from 'next-auth/jwt'
 import { checkRouteAccess } from './app/lib/auth/policies'
 import { UserRole } from './app/lib/generated'
-import { logEvent } from './app/lib/utils'
+
+// Simple logging function for middleware (Edge Runtime compatible)
+function logMiddlewareEvent(level: string, message: string, metadata: Record<string, any> = {}) {
+  console.log(`[${level}] ${message}`, {
+    timestamp: new Date().toISOString(),
+    ...metadata
+  })
+}
 
 export async function middleware(request: NextRequest) {
   const requestId = crypto.randomUUID()
@@ -16,7 +23,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname
   
   // Skip auth check for public routes
-  const publicRoutes = ['/api/auth', '/auth', '/favicon.ico']
+  const publicRoutes = ['/api/auth', '/api/health', '/auth', '/favicon.ico', '/']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
   
   if (!isPublicRoute) {
@@ -32,15 +39,13 @@ export async function middleware(request: NextRequest) {
     
     if (!policyResult.allowed) {
       // Log RBAC deny (without PII)
-      await logEvent('WARN', 'rbac_deny', {
+      logMiddlewareEvent('WARN', 'rbac_deny', {
         requestId,
-        metadata: {
-          path: pathname,
-          method: request.method,
-          userRole: userRole || 'unauthenticated',
-          requiredRoles: policyResult.requiredRoles,
-          reason: policyResult.reason
-        }
+        path: pathname,
+        method: request.method,
+        userRole: userRole || 'unauthenticated',
+        requiredRoles: policyResult.requiredRoles,
+        reason: policyResult.reason
       })
       
       // Return 403 Forbidden

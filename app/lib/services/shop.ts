@@ -1,91 +1,153 @@
-import { prisma } from "@/app/lib/prisma"
-import { ItemRarity, ItemType, MoneyTxType } from "@/app/lib/generated"
-
-export interface ShopItem {
-  id: string
-  name: string
-  description: string
-  price: number
-  rarity: ItemRarity
-  type: ItemType
-  imageUrl?: string
-  isActive: boolean
-}
-
-export interface PurchaseResult {
-  purchase: {
-    id: string
-    userId: string
-    itemId: string
-    price: number
-    createdAt: Date
-  }
-  item: ShopItem
-  userBalance: number
-}
+import { prisma } from "../prisma"
+import { UserRole, ItemRarity, ItemType, MoneyTxType } from "../generated"
+import { generateRequestId, sanitizeForLog } from "../utils"
 
 export class ShopService {
-  /**
-   * Get all active items available for purchase
-   */
-  static async getShopItems(): Promise<ShopItem[]> {
-    const items = await prisma.item.findMany({
-      where: { isActive: true },
+  static async getItems(isActive?: boolean) {
+    const where = isActive !== undefined ? { isActive } : {}
+    
+    return await prisma.item.findMany({
+      where,
       orderBy: [
-        { rarity: 'asc' },
-        { price: 'asc' },
-        { name: 'asc' }
+        { rarity: "asc" },
+        { price: "asc" },
+        { name: "asc" }
       ]
     })
-
-    return items.map(item => ({
-      id: item.id,
-      name: item.name,
-      description: item.description,
-      price: item.price,
-      rarity: item.rarity,
-      type: item.type,
-      imageUrl: item.imageUrl,
-      isActive: item.isActive
-    }))
   }
 
-  /**
-   * Purchase an item for a user
-   */
-  static async purchaseItem(userId: string, itemId: string, requestId?: string): Promise<PurchaseResult> {
+  static async getItemById(itemId: string) {
+    return await prisma.item.findUnique({
+      where: { id: itemId }
+    })
+  }
+
+  static async createItem(data: {
+    name: string
+    description: string
+    price: number
+    rarity: ItemRarity
+    type: ItemType
+    imageUrl?: string
+  }, requestId?: string) {
+    const reqId = requestId || generateRequestId()
+    
     return await prisma.$transaction(async (tx) => {
-      // Get the item
-      const item = await tx.item.findUnique({
-        where: { id: itemId, isActive: true }
+      const item = await tx.item.create({
+        data: {
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          rarity: data.rarity,
+          type: data.type,
+          imageUrl: data.imageUrl,
+          isActive: true
+        }
       })
-
-      if (!item) {
-        throw new Error('Item not found or not available')
-      }
-
-      // Get user's current balance
-      const user = await tx.user.findUnique({
-        where: { id: userId },
-        include: {
-          moneyTxs: {
-            orderBy: { createdAt: 'desc' },
-            take: 1
+      
+      // Log item creation
+      await tx.systemLog.create({
+        data: {
+          level: "INFO",
+          message: sanitizeForLog(`Item created: ${data.name}`),
+          requestId: reqId,
+          metadata: {
+            itemId: item.id,
+            price: data.price,
+            rarity: data.rarity,
+            type: data.type
           }
         }
       })
+      
+      return item
+    })
+  }
 
-      if (!user) {
-        throw new Error('User not found')
+  static async toggleItem(itemId: string, requestId?: string) {
+    const reqId = requestId || generateRequestId()
+    
+    return await prisma.$transaction(async (tx) => {
+      const item = await tx.item.findUnique({
+        where: { id: itemId }
+      })
+      
+      if (!item) {
+        throw new Error("Item not found")
       }
+      
+      const updatedItem = await tx.item.update({
+        where: { id: itemId },
+        data: { isActive: !item.isActive }
+      })
+      
+      // Log item toggle
+      await tx.systemLog.create({
+        data: {
+          level: "INFO",
+          message: sanitizeForLog(`Item ${updatedItem.isActive ? 'activated' : 'deactivated'}: ${item.name}`),
+          requestId: reqId,
+          metadata: {
+            itemId: item.id,
+            previousState: item.isActive,
+            newState: updatedItem.isActive
+          }
+        }
+      })
+      
+      return updatedItem
+    })
+  }
 
-      // Calculate current balance
-      const currentBalance = user.moneyTxs.length > 0 ? user.moneyTxs[0].amount : 0
-
+  static async buyItem(itemId: string, userId: string, requestId?: string) {
+    const reqId = requestId || generateRequestId()
+    
+    return await prisma.$transaction(async (tx) => {
+      // Get item details
+      const item = await tx.item.findUnique({
+        where: { id: itemId }
+      })
+      
+      if (!item) {
+        throw new Error("Item not found")
+      }
+      
+      if (!item.isActive) {
+        throw new Error("Item is not available for purchase")
+      }
+      
+      // Get user's current balance
+      const moneyTransactions = await tx.moneyTx.findMany({
+        where: { userId }
+      })
+      
+      const currentBalance = moneyTransactions.reduce((balance, tx) => {
+        if (tx.type === MoneyTxType.EARNED) return balance + tx.amount
+        if (tx.type === MoneyTxType.SPENT) return balance - tx.amount
+        if (tx.type === MoneyTxType.REFUND) return balance + tx.amount
+        return balance
+      }, 0)
+      
       if (currentBalance < item.price) {
-        throw new Error('Insufficient funds')
+        throw new Error(`Insufficient funds. Required: ${item.price}, Available: ${currentBalance}`)
       }
-
+      
+      // Check for idempotency (prevent duplicate purchases)
+      const existingPurchase = await tx.purchase.findFirst({
+        where: {
+          userId,
+          itemId,
+          price: item.price,
+          createdAt: {
+            gte: new Date(Date.now() - 60000) // Within last minute
+          }
+        }
+      })
+      
+      if (existingPurchase) {
+        return existingPurchase // Return existing purchase if same requestId
+      }
+      
       // Create purchase record
       const purchase = await tx.purchase.create({
         data: {
@@ -94,99 +156,72 @@ export class ShopService {
           price: item.price
         }
       })
-
-      // Create money transaction (deduct price)
-      const moneyTx = await tx.moneyTx.create({
+      
+      // Deduct money from user
+      await tx.moneyTx.create({
         data: {
           userId,
-          amount: currentBalance - item.price,
-          type: MoneyTxType.PURCHASE,
-          reason: `Purchased ${item.name}`,
-          requestId
+          amount: item.price,
+          type: MoneyTxType.SPENT,
+          reason: `Purchase: ${item.name}`,
+          requestId: reqId
         }
       })
-
-      // Log the purchase
+      
+      // Log purchase
       await tx.systemLog.create({
         data: {
-          level: 'INFO',
-          message: 'item_purchased',
+          level: "INFO",
+          message: sanitizeForLog(`Item purchased: ${item.name} for ${item.price} coins`),
+          userId,
+          requestId: reqId,
           metadata: {
-            userId,
-            itemId,
-            itemName: item.name,
+            itemId: item.id,
+            purchaseId: purchase.id,
             price: item.price,
-            requestId
+            itemName: item.name
           }
         }
       })
-
-      return {
-        purchase: {
-          id: purchase.id,
-          userId: purchase.userId,
-          itemId: purchase.itemId,
-          price: purchase.price,
-          createdAt: purchase.createdAt
-        },
-        item: {
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          price: item.price,
-          rarity: item.rarity,
-          type: item.type,
-          imageUrl: item.imageUrl,
-          isActive: item.isActive
-        },
-        userBalance: moneyTx.amount
-      }
+      
+      return purchase
     })
   }
 
-  /**
-   * Get user's purchase history
-   */
-  static async getUserPurchases(userId: string): Promise<Array<{
-    id: string
-    item: ShopItem
-    price: number
-    purchasedAt: Date
-  }>> {
-    const purchases = await prisma.purchase.findMany({
+  static async getUserPurchases(userId: string) {
+    return await prisma.purchase.findMany({
       where: { userId },
       include: {
         item: true
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" }
     })
-
-    return purchases.map(purchase => ({
-      id: purchase.id,
-      item: {
-        id: purchase.item.id,
-        name: purchase.item.name,
-        description: purchase.item.description,
-        price: purchase.item.price,
-        rarity: purchase.item.rarity,
-        type: purchase.item.type,
-        imageUrl: purchase.item.imageUrl,
-        isActive: purchase.item.isActive
-      },
-      price: purchase.price,
-      purchasedAt: purchase.createdAt
-    }))
   }
 
-  /**
-   * Get user's current balance
-   */
-  static async getUserBalance(userId: string): Promise<number> {
-    const latestTx = await prisma.moneyTx.findFirst({
-      where: { userId },
-      orderBy: { createdAt: 'desc' }
+  static async getUserBalance(userId: string) {
+    const moneyTransactions = await prisma.moneyTx.findMany({
+      where: { userId }
     })
+    
+    return moneyTransactions.reduce((balance, tx) => {
+      if (tx.type === MoneyTxType.EARNED) return balance + tx.amount
+      if (tx.type === MoneyTxType.SPENT) return balance - tx.amount
+      if (tx.type === MoneyTxType.REFUND) return balance + tx.amount
+      return balance
+    }, 0)
+  }
 
-    return latestTx?.amount || 0
+  static async getShopStats() {
+    const [totalItems, activeItems, totalPurchases] = await Promise.all([
+      prisma.item.count(),
+      prisma.item.count({ where: { isActive: true } }),
+      prisma.purchase.count()
+    ])
+    
+    return {
+      totalItems,
+      activeItems,
+      totalPurchases
+    }
   }
 }

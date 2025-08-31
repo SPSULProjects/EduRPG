@@ -9,10 +9,11 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const requestId = generateRequestId()
+  let session: any = null
   
   try {
     // Validate session
-    const session = await getServerSession(authOptions)
+    session = await getServerSession(authOptions)
     if (!session?.user) {
       await logEvent('WARN', 'auth_deny', {
         requestId,
