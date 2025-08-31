@@ -40,20 +40,20 @@ describe('Guard Utilities', () => {
       expect(canManageUser(UserRole.TEACHER, UserRole.OPERATOR)).toBe(false)
     })
 
-    it('should not allow teacher to manage other teachers', () => {
-      expect(canManageUser(UserRole.TEACHER, UserRole.TEACHER)).toBe(false)
+    it('should allow teacher to manage other teachers (same level)', () => {
+      expect(canManageUser(UserRole.TEACHER, UserRole.TEACHER)).toBe(true)
     })
 
-    it('should not allow student to manage anyone', () => {
-      expect(canManageUser(UserRole.STUDENT, UserRole.STUDENT)).toBe(false)
+    it('should allow student to manage themselves but not others', () => {
+      expect(canManageUser(UserRole.STUDENT, UserRole.STUDENT)).toBe(true)
       expect(canManageUser(UserRole.STUDENT, UserRole.TEACHER)).toBe(false)
       expect(canManageUser(UserRole.STUDENT, UserRole.OPERATOR)).toBe(false)
     })
 
     it('should allow users to manage themselves', () => {
       expect(canManageUser(UserRole.OPERATOR, UserRole.OPERATOR)).toBe(true)
-      expect(canManageUser(UserRole.TEACHER, UserRole.TEACHER)).toBe(false) // Teachers can't manage other teachers
-      expect(canManageUser(UserRole.STUDENT, UserRole.STUDENT)).toBe(false) // Students can't manage anyone
+      expect(canManageUser(UserRole.TEACHER, UserRole.TEACHER)).toBe(true) // Teachers can manage themselves
+      expect(canManageUser(UserRole.STUDENT, UserRole.STUDENT)).toBe(true) // Students can manage themselves
     })
   })
 

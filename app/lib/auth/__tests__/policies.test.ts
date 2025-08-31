@@ -157,22 +157,22 @@ describe('Route Policies', () => {
     it('should return accessible routes for operator', () => {
       const routes = getAccessibleRoutes(UserRole.OPERATOR)
       expect(routes.length).toBeGreaterThan(0)
-      expect(routes).toContain('/admin')
-      expect(routes).toContain('/api/sync/bakalari')
+      expect(routes).toContain('^/admin')
+      expect(routes).toContain('^/api/sync/bakalari')
     })
 
     it('should return accessible routes for teacher', () => {
       const routes = getAccessibleRoutes(UserRole.TEACHER)
       expect(routes.length).toBeGreaterThan(0)
-      expect(routes).toContain('/api/xp/grant')
-      expect(routes).toContain('/api/teacher/budget')
+      expect(routes).toContain('^/api/xp/grant$')
+      expect(routes).toContain('^/api/teacher/budget')
     })
 
     it('should return accessible routes for student', () => {
       const routes = getAccessibleRoutes(UserRole.STUDENT)
       expect(routes.length).toBeGreaterThan(0)
-      expect(routes).toContain('/api/health')
-      expect(routes).toContain('/api/shop')
+      expect(routes).toContain('^/api/health$')
+      expect(routes).toContain('^/api/shop')
     })
   })
 
