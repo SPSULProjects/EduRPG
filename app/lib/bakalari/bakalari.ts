@@ -1,4 +1,5 @@
-const bakalariURL = "https://spsul.bakalari.cz";
+// Get Bakalari URL from environment variable or use default
+const bakalariURL = process.env.BAKALARI_URL || "https://spsul.bakalari.cz";
 
 /**
  * Interface for the login payload as returned by Bakalari.
@@ -120,7 +121,11 @@ export const loginToBakalari = async (
     password: string
 ): Promise<BakalariLoginResponse | null> => {
     try {
-        const response = await fetch(new URL("/api/login", bakalariURL).toString(), {
+        console.log("Attempting Bakalari login to:", bakalariURL)
+        const loginUrl = new URL("/api/login", bakalariURL).toString()
+        console.log("Login URL:", loginUrl)
+        
+        const response = await fetch(loginUrl, {
             method: "POST",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded",
@@ -131,10 +136,15 @@ export const loginToBakalari = async (
             cache: "no-store"
         });
 
+        console.log("Bakalari login response status:", response.status)
+        
         if (response.ok) {
             const data: IBakalariLoginPayload = await response.json();
+            console.log("Bakalari login successful")
             return new BakalariLoginResponse(data);
         } else {
+            const errorText = await response.text()
+            console.log("Bakalari login failed:", response.status, errorText)
             return null;
         }
     } catch (error) {

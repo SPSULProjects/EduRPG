@@ -1,53 +1,49 @@
 "use client"
 
 import { useState } from "react"
-import { signIn, getSession } from "next-auth/react"
-import { useRouter } from "next/navigation"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
-import { Loader2, ArrowLeft } from "lucide-react"
-import Link from "next/link"
+import { Loader2 } from "lucide-react"
 
-export default function SignInPage() {
+export default function TestBakalariPage() {
+  const [bakalariUrl, setBakalariUrl] = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [result, setResult] = useState<any>(null)
   const [error, setError] = useState("")
-  const router = useRouter()
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleTest = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
+    setResult(null)
 
     try {
-      const result = await signIn("credentials", {
-        username,
-        password,
-        redirect: false,
+      const response = await fetch("/api/test-bakalari", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bakalariUrl,
+          username,
+          password,
+        }),
       })
 
-      if (result?.error) {
-        // Map NextAuth error codes to user-friendly messages
-        const errorMessages: Record<string, string> = {
-          'CredentialsSignin': 'Nesprávné uživatelské jméno nebo heslo. Zkontrolujte své Bakaláři přihlašovací údaje.',
-          'Configuration': 'Chyba konfigurace. Kontaktujte správce systému.',
-          'AccessDenied': 'Přístup odepřen. Kontaktujte správce systému.',
-          'Verification': 'Ověření selhalo. Zkuste to znovu.',
-          'Default': 'Nastala neočekávaná chyba. Zkuste to znovu.'
-        }
-        
-        const userFriendlyError = errorMessages[result.error] || errorMessages['Default']
-        setError(userFriendlyError)
-      } else if (result?.ok) {
-        // Redirect to dashboard after successful login
-        router.push("/dashboard")
+      const data = await response.json()
+      
+      if (response.ok) {
+        setResult(data)
+      } else {
+        setError(data.error || "Test failed")
       }
     } catch (error) {
-      setError("An unexpected error occurred. Please try again.")
+      setError("Network error occurred")
     } finally {
       setIsLoading(false)
     }
@@ -56,32 +52,36 @@ export default function SignInPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Back to home link */}
-        <Link 
-          href="/" 
-          className="inline-flex items-center text-sm text-gray-600 hover:text-gray-900 mb-6"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Zpět na hlavní stránku
-        </Link>
-
         <Card className="shadow-xl">
           <CardHeader className="text-center">
             <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Přihlášení do EduRPG
+              Test Bakaláři Connection
             </CardTitle>
             <CardDescription>
-              Přihlaste se pomocí svých Bakaláři přihlašovacích údajů
+              Test your Bakaláři URL and credentials
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleTest} className="space-y-4">
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
               
+              <div className="space-y-2">
+                <Label htmlFor="bakalariUrl">Bakaláři URL</Label>
+                <Input
+                  id="bakalariUrl"
+                  type="url"
+                  value={bakalariUrl}
+                  onChange={(e) => setBakalariUrl(e.target.value)}
+                  placeholder="https://your-school.bakalari.cz"
+                  required
+                  disabled={isLoading}
+                />
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="username">Uživatelské jméno</Label>
                 <Input
@@ -116,21 +116,22 @@ export default function SignInPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Přihlašování...
+                    Testování...
                   </>
                 ) : (
-                  "Přihlásit se"
+                  "Testovat připojení"
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center text-sm text-gray-600">
-              <p>
-                Používáme Bakaláři API pro bezpečné přihlášení.
-                <br />
-                Vaše údaje se nikdy neukládají v naší databázi.
-              </p>
-            </div>
+            {result && (
+              <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <h3 className="font-semibold text-green-800 mb-2">Test Results:</h3>
+                <pre className="text-sm text-green-700 overflow-auto">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

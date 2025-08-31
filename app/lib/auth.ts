@@ -94,16 +94,24 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
+        console.log("Auth attempt with credentials:", { 
+          hasUsername: !!credentials?.username,
+          hasPassword: !!credentials?.password 
+        })
         try {
           // Validate input
           const validatedCredentials = credentialsSchema.parse(credentials)
           
           // Log authentication attempt (without PII)
-          await logEvent("INFO", "Authentication attempt", {
-            metadata: {
-              hasUsername: !!validatedCredentials.username
-            }
-          })
+          try {
+            await logEvent("INFO", "Authentication attempt", {
+              metadata: {
+                hasUsername: !!validatedCredentials.username
+              }
+            })
+          } catch (logError) {
+            console.warn("Failed to log authentication attempt:", logError)
+          }
 
           // Authenticate with Bakalari API
           const bakalariResult = await loginToBakalariAndFetchUserData(
@@ -113,12 +121,16 @@ export const authOptions: NextAuthOptions = {
 
           if (!bakalariResult.status.success) {
             // Log failed authentication (without PII)
-            await logEvent("WARN", "Authentication failed", {
-              metadata: {
-                loginFailed: bakalariResult.status.loginFailed,
-                userDataFailed: bakalariResult.status.userDataFailed
-              }
-            })
+            try {
+              await logEvent("WARN", "Authentication failed", {
+                metadata: {
+                  loginFailed: bakalariResult.status.loginFailed,
+                  userDataFailed: bakalariResult.status.userDataFailed
+                }
+              })
+            } catch (logError) {
+              console.warn("Failed to log authentication failure:", logError)
+            }
             
             // Return user-friendly error message
             throw new Error(
@@ -129,18 +141,26 @@ export const authOptions: NextAuthOptions = {
           }
 
           if (!bakalariResult.data) {
-            await logEvent("WARN", "Authentication failed - no user data", {
-              metadata: {}
-            })
+            try {
+              await logEvent("WARN", "Authentication failed - no user data", {
+                metadata: {}
+              })
+            } catch (logError) {
+              console.warn("Failed to log no user data error:", logError)
+            }
             throw new Error("Unable to retrieve user information. Please try again.")
           }
 
           // Get the access token from the login response
           const bakalariToken = bakalariResult.accessToken
           if (!bakalariToken) {
-            await logEvent("WARN", "Authentication failed - no token", {
-              metadata: {}
-            })
+            try {
+              await logEvent("WARN", "Authentication failed - no token", {
+                metadata: {}
+              })
+            } catch (logError) {
+              console.warn("Failed to log no token error:", logError)
+            }
             throw new Error("Authentication service unavailable. Please try again later.")
           }
 
@@ -148,13 +168,17 @@ export const authOptions: NextAuthOptions = {
           const user = await upsertUserFromBakalari(bakalariResult.data, bakalariToken)
 
           // Log successful authentication
-          await logEvent("INFO", "Authentication successful", {
-            userId: user.id,
-            metadata: {
-              bakalariId: bakalariResult.data.userID,
-              role: user.role
-            }
-          })
+          try {
+            await logEvent("INFO", "Authentication successful", {
+              userId: user.id,
+              metadata: {
+                bakalariId: bakalariResult.data.userID,
+                role: user.role
+              }
+            })
+          } catch (logError) {
+            console.warn("Failed to log successful authentication:", logError)
+          }
 
           return {
             id: user.id,
@@ -164,11 +188,15 @@ export const authOptions: NextAuthOptions = {
             classId: user.classId || undefined,
           }
         } catch (error) {
-          await logEvent("ERROR", "Authentication error", {
-            metadata: {
-              error: error instanceof Error ? error.message : "Unknown error"
-            }
-          })
+          try {
+            await logEvent("ERROR", "Authentication error", {
+              metadata: {
+                error: error instanceof Error ? error.message : "Unknown error"
+              }
+            })
+          } catch (logError) {
+            console.warn("Failed to log authentication error:", logError)
+          }
           return null
         }
       }
