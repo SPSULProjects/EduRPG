@@ -4,11 +4,11 @@ import { requireOperator } from "@/app/lib/rbac"
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireOperator()
-    const itemId = params.id
+    const { id: itemId } = await params
     
     const updatedItem = await ShopService.toggleItem(itemId)
     
