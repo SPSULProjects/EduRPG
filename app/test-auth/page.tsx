@@ -7,13 +7,8 @@ import { Input } from "@/app/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 
-<<<<<<< HEAD
-export default function TestAuthPage() {
-  const { data: session, status } = useSession() || { data: null, status: 'unauthenticated' }
-=======
 function TestAuthContent() {
   const { data: session, status } = useSession()
->>>>>>> 57957e514ae0ed158abca69745348397c044771f
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)

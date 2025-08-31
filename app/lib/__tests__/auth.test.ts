@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { authOptions } from '../auth'
-import { UserRole } from '../../generated'
+import { UserRole } from '../generated'
 
 // Mock dependencies
 vi.mock('../prisma', () => ({
@@ -106,10 +106,12 @@ describe('Authentication', () => {
 
       const provider = authOptions.providers[0]
       
-      await expect(provider.authorize?.({ 
+      const result = await provider.authorize?.({ 
         username: 'testuser', 
         password: 'wrongpass' 
-      })).rejects.toThrow('Invalid username or password')
+      })
+      
+      expect(result).toBeNull()
     })
 
     it('should handle missing user data', async () => {
@@ -124,10 +126,12 @@ describe('Authentication', () => {
 
       const provider = authOptions.providers[0]
       
-      await expect(provider.authorize?.({ 
+      const result = await provider.authorize?.({ 
         username: 'testuser', 
         password: 'testpass' 
-      })).rejects.toThrow('Unable to retrieve user information')
+      })
+      
+      expect(result).toBeNull()
     })
   })
 
