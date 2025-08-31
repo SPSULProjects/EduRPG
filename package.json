@@ -55,12 +55,8 @@
     "@vitest/ui": "^2.1.8",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
-<<<<<<< HEAD
     "jsdom": "^26.1.0",
-    "prisma": "^5.18.0",
-=======
     "prisma": "^6.15.0",
->>>>>>> 57957e514ae0ed158abca69745348397c044771f
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.7",
     "typescript": "^5.5.4",
