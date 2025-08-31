@@ -41,6 +41,7 @@ import {
 import { UserRole } from "@/app/lib/generated"
 import { signOut } from "next-auth/react"
 import { formatXP, calculateLevel } from "@/app/lib/utils"
+import { ErrorBoundary } from "@/app/components/ErrorBoundary"
 
 interface AppLayoutProps {
   children: React.ReactNode
@@ -64,6 +65,15 @@ export function AppLayout({ children }: AppLayoutProps) {
     return <div>{children}</div>
   }
 
+  // Ensure session data exists
+  if (!session.data) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      </div>
+    )
+  }
+
   const { data: sessionData } = session
 
   const { level } = calculateLevel(0) // TODO: Get actual XP from session or context
@@ -78,7 +88,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       }
     ]
 
-    switch (sessionData.user.role) {
+    switch (sessionData?.user?.role) {
       case UserRole.STUDENT:
         return [
           ...baseItems,
@@ -286,16 +296,16 @@ export function AppLayout({ children }: AppLayoutProps) {
               <div className="flex items-center space-x-3">
                 <div className="hidden sm:block text-right">
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
-                    {sessionData.user.name}
+                    {sessionData?.user?.name || "Unknown User"}
                   </p>
                   <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {sessionData.user.role === UserRole.STUDENT && "Student"}
-                    {sessionData.user.role === UserRole.TEACHER && "Učitel"}
-                    {sessionData.user.role === UserRole.OPERATOR && "Operátor"}
+                    {sessionData?.user?.role === UserRole.STUDENT && "Student"}
+                    {sessionData?.user?.role === UserRole.TEACHER && "Učitel"}
+                    {sessionData?.user?.role === UserRole.OPERATOR && "Operátor"}
                   </p>
                 </div>
                 <Avatar className="w-8 h-8">
-                  <AvatarImage src="" alt={sessionData.user.name} />
+                  <AvatarImage src="" alt={sessionData?.user?.name || "User"} />
                   <AvatarFallback>
                     <User className="w-4 h-4" />
                   </AvatarFallback>
@@ -317,7 +327,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         {/* Main Content Area */}
         <main className="flex-1 overflow-auto">
           <div className="container mx-auto p-6">
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
           </div>
         </main>
       </div>

@@ -16,9 +16,17 @@ export async function GET(request: NextRequest) {
     
     const xpData = await XPService.getStudentXP(session.user.id)
     
+    // Ensure we have valid data
+    if (!xpData) {
+      return NextResponse.json({
+        totalXP: 0,
+        recentGrants: []
+      })
+    }
+    
     return NextResponse.json({
-      totalXP: xpData.totalXP,
-      recentGrants: xpData.recentGrants
+      totalXP: xpData.totalXP || 0,
+      recentGrants: xpData.recentGrants || []
     })
   } catch (error) {
     console.error("XP GET error:", error)

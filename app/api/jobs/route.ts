@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         userId: session.user.id,
         metadata: { jobCount: jobs.length }
       })
-      return NextResponse.json({ jobs })
+      return NextResponse.json({ jobs: jobs || [] })
     } else if (role === "TEACHER" || role === "OPERATOR") {
       const jobs = await JobsService.getJobsForTeacher(session.user.id)
       await logEvent("INFO", "job_list_teacher", {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
         userId: session.user.id,
         metadata: { jobCount: jobs.length }
       })
-      return NextResponse.json({ jobs })
+      return NextResponse.json({ jobs: jobs || [] })
     }
     
     await logEvent("WARN", "job_list_invalid_role", {

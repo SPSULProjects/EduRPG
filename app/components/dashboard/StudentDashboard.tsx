@@ -39,10 +39,11 @@ export function StudentDashboard({ userId, classId }: StudentDashboardProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [applyingJob, setApplyingJob] = useState<string | null>(null)
+  const [retryCount, setRetryCount] = useState(0)
 
   useEffect(() => {
     fetchDashboardData()
-  }, [])
+  }, [retryCount])
 
   const fetchDashboardData = async () => {
     try {
@@ -63,8 +64,20 @@ export function StudentDashboard({ userId, classId }: StudentDashboardProps) {
       const jobsData = await jobsResponse.json()
       const xpData = await xpResponse.json()
       
-      setJobs(jobsData.jobs || [])
-      setXp(xpData.totalXP || 0)
+      // Add safety checks for the response data
+      if (!jobsData || !Array.isArray(jobsData.jobs)) {
+        console.warn("Invalid jobs data received:", jobsData)
+        setJobs([])
+      } else {
+        setJobs(jobsData.jobs)
+      }
+      
+      if (!xpData || typeof xpData.totalXP !== 'number') {
+        console.warn("Invalid XP data received:", xpData)
+        setXp(0)
+      } else {
+        setXp(xpData.totalXP)
+      }
     } catch (error) {
       console.error("Error fetching dashboard data:", error)
       setError(error instanceof Error ? error.message : "Failed to load dashboard data")
@@ -125,7 +138,7 @@ export function StudentDashboard({ userId, classId }: StudentDashboardProps) {
             </div>
             <p className="text-red-600 mt-2">{error}</p>
             <Button 
-              onClick={fetchDashboardData} 
+              onClick={() => setRetryCount(prev => prev + 1)} 
               variant="outline" 
               className="mt-4"
             >
