@@ -18,6 +18,20 @@ export interface PolicyResult {
  * Format: { pattern: RegExp, roles: UserRole[], description: string }
  */
 export const routePolicies: RoutePolicy[] = [
+  // Main page - Public access
+  {
+    pattern: /^\/$/,
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR],
+    description: 'Main landing page'
+  },
+  
+  // Dashboard routes - All authenticated users
+  {
+    pattern: /^\/dashboard(\/.*)?$/,
+    roles: [UserRole.STUDENT, UserRole.TEACHER, UserRole.OPERATOR],
+    description: 'Dashboard access'
+  },
+  
   // Admin routes - Operator only
   {
     pattern: /^\/admin(\/.*)?$/,
