@@ -53,9 +53,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
     
-    // Generate request ID for idempotency
-    const requestId = request.headers.get('x-request-id') || 
-                     `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+    // Use existing request ID for idempotency
     
     // Grant XP with budget enforcement
     const xpAudit = await XPService.grantXP({
