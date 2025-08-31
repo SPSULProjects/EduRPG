@@ -4,19 +4,19 @@ import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 
 export function usePolicyAcknowledgment() {
-  const { data: session } = useSession()
+  const session = useSession()
   const [hasAcknowledged, setHasAcknowledged] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const checkPolicyAcknowledgment = async () => {
-      if (!session?.user?.id) {
+      if (!session.data?.user?.id) {
         setIsLoading(false)
         return
       }
 
       try {
-        const response = await fetch(`/api/policy/check?userId=${session.user.id}`)
+        const response = await fetch(`/api/policy/check?userId=${session.data.user.id}`)
         
         if (response.ok) {
           const data = await response.json()
@@ -35,7 +35,7 @@ export function usePolicyAcknowledgment() {
     }
 
     checkPolicyAcknowledgment()
-  }, [session?.user?.id])
+  }, [session.data?.user?.id])
 
   return {
     hasAcknowledged,
