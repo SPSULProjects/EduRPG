@@ -34,6 +34,8 @@ model User {
   purchases Purchase[]
   achievementAwards AchievementAward[]
   systemLogs SystemLog[]
+  jobs Job[]
+  achievementAwardsGiven AchievementAward[] @relation("AchievementAwardedBy")
   
   @@index([role])
   @@index([classId])
@@ -64,6 +66,7 @@ model Subject {
   // Relations
   enrollments Enrollment[]
   jobs       Job[]
+  teacherDailyBudgets TeacherDailyBudget[]
   
   // Timestamps
   createdAt DateTime @default(now())

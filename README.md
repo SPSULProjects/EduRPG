@@ -1,265 +1,163 @@
 # EduRPG - Školní gamifikační platforma
 
-EduRPG je moderní gamifikační platforma pro vzdělávání, která transformuje tradiční školní prostředí v RPG zážitek. Studenti získávají XP, plní úkoly, sbírají úspěchy a stoupají v úrovních.
+RPG-stylovaná platforma pro gamifikaci vzdělávání s úkoly, XP, úspěchy a obchodem.
 
-## 🎮 Funkce
+## 🚀 Features
 
-- **Úkoly a mise** - Učitelé vytvářejí zajímavé úkoly s XP a peněžními odměnami
-- **XP ekonomika** - Systém zkušeností s denními rozpočty pro učitele
-- **Úspěchy a odznaky** - Odemykání úspěchů za různé výkony
-- **Obchod s předměty** - Kosmetické předměty a boosty
-- **Role-based přístup** - Studenti, učitelé a operátoři
-- **Bakaláři integrace** - Synchronizace s existujícím školním systémem
-- **RPG UI** - Moderní, responzivní design s gamifikačními prvky
+- **Role-based Access Control**: STUDENT, TEACHER, OPERATOR roles
+- **Job System**: Teachers create tasks, students apply and complete them
+- **XP Economy**: Experience points and level progression
+- **Achievement System**: Badges and achievements for motivation
+- **Shop System**: Virtual currency and item purchases
+- **Bakaláři Integration**: School management system integration (planned)
 
-## 🏗️ Architektura
+## 🛠️ Tech Stack
 
-### Technologie
-- **Frontend**: Next.js 15 (App Router), React 19, TypeScript
-- **UI**: TailwindCSS + shadcn/ui
-- **Autentifikace**: NextAuth v4 s JWT
-- **Databáze**: PostgreSQL 16 + Prisma ORM
-- **Validace**: Zod
-- **Styling**: TailwindCSS s RPG tématem
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **UI**: Tailwind CSS, Radix UI, Lucide Icons
+- **Backend**: Next.js API Routes
+- **Database**: PostgreSQL with Prisma ORM
+- **Authentication**: NextAuth.js
+- **Validation**: Zod
 
-### Struktura projektu
-```
-EduRPG/
-├── app/
-│   ├── (app)/dashboard/     # Role-aware dashboards
-│   ├── api/                 # API routes
-│   ├── components/          # UI components
-│   ├── lib/                 # Core utilities
-│   │   ├── services/        # Domain services
-│   │   ├── auth.ts          # NextAuth config
-│   │   ├── rbac.ts          # Role-based access control
-│   │   └── utils.ts         # Utility functions
-│   └── globals.css          # Global styles
-├── prisma/                  # Database schema
-├── docs/                    # Documentation
-└── ops/                     # Operations scripts
-```
+## 📋 Prerequisites
 
-## 🚀 Rychlý start
+- Node.js 18+ 
+- PostgreSQL database
+- npm or yarn
 
-### Předpoklady
-- Node.js 18+
-- Docker a Docker Compose
-- PostgreSQL 16
+## 🔧 Setup
 
-### Instalace
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd edurpg
+   ```
 
-1. **Klonujte repozitář**
-```bash
-git clone <repository-url>
-cd EduRPG
-```
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
 
-2. **Nastavte prostředí**
-```bash
-cp env.example .env.local
-# Upravte .env.local s vašimi hodnotami
-```
+3. **Environment setup**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   Configure the following environment variables:
+   ```env
+   DATABASE_URL="postgresql://username:password@localhost:5432/edurpg"
+   NEXTAUTH_SECRET="your-secret-key"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
 
-3. **Spusťte databázi**
-```bash
-docker-compose up -d postgres
-```
+4. **Database setup**
+   ```bash
+   npm run prisma:generate
+   npm run prisma:migrate
+   ```
 
-4. **Nainstalujte závislosti**
-```bash
-npm install
-```
+5. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-5. **Nastavte databázi**
-```bash
-npx prisma generate
-npx prisma migrate dev
-```
+## 🔒 Security Notes
 
-6. **Spusťte vývojový server**
-```bash
-npm run dev
-```
+### ⚠️ Important Security Considerations
 
-Aplikace bude dostupná na `http://localhost:3000`
+1. **Authentication**: Currently using development-only authentication
+   - Production requires Bakaláři DataConnector integration
+   - Never deploy with mock authentication in production
 
-## 🔧 Konfigurace
+2. **Environment Variables**: 
+   - Keep `.env.local` secure and never commit to version control
+   - Use strong, unique secrets for production
 
-### Environment proměnné
+3. **Database Security**:
+   - Use connection pooling in production
+   - Implement proper backup strategies
+   - Regular security updates
 
-Vytvořte `.env.local` soubor s následujícími proměnnými:
+4. **API Security**:
+   - All endpoints require authentication
+   - Role-based access control implemented
+   - Input validation with Zod schemas
 
-```env
-# Database
-DATABASE_URL="postgresql://edurpg_user:edurpg_password@localhost:5432/edurpg"
+## 🧪 Development
 
-# NextAuth
-NEXTAUTH_URL="http://localhost:3000"
-NEXTAUTH_SECRET="your-secret-key"
-
-# Bakaláři Integration (volitelné)
-BAKALARI_API_URL="https://api.bakalari.cz"
-BAKALARI_CLIENT_ID="your-client-id"
-BAKALARI_CLIENT_SECRET="your-client-secret"
-```
-
-### Databáze
-
-Pro lokální vývoj použijte Docker Compose:
+### Available Scripts
 
 ```bash
-# Spustit databázi
-docker-compose up -d postgres
-
-# Zobrazit logy
-docker-compose logs postgres
-
-# Zastavit
-docker-compose down
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run start        # Start production server
+npm run lint         # Run ESLint
+npm run prisma:generate  # Generate Prisma client
+npm run prisma:migrate   # Run database migrations
+npm run prisma:studio    # Open Prisma Studio
 ```
 
-## 👥 Role a oprávnění
+### Code Quality
 
-### Student
-- Prohlížení dostupných úkolů
-- Přihlašování na úkoly
-- Sledování XP a úrovní
-- Nákup předmětů v obchodě
+- **ESLint**: Configured with Next.js and TypeScript rules
+- **TypeScript**: Strict type checking enabled
+- **Prettier**: Code formatting (recommended)
 
-### Učitel
-- Vytváření a správa úkolů
-- Schvalování přihlášek studentů
-- Udělování XP (s denním rozpočtem)
-- Sledování pokroku studentů
+### Database Schema
 
-### Operátor
-- Správa celého systému
-- Synchronizace s Bakaláři
-- Správa uživatelů a tříd
-- Systémové nastavení
+The application uses Prisma with the following main entities:
+- `User`: Students, teachers, and operators
+- `Job`: Tasks created by teachers
+- `JobAssignment`: Student applications for jobs
+- `XPAudit`: Experience point transactions
+- `MoneyTx`: Virtual currency transactions
+- `Achievement`: Badges and achievements
 
-## 🎯 Domény
+## 🚨 Critical TODOs Before Production
 
-### Jobs (Úkoly)
-- Vytváření úkolů s XP a peněžními odměnami
-- Přihlašování studentů na úkoly
-- Schvalování a dokončování úkolů
-- Automatické rozdělování odměn
+1. **Authentication**: Implement Bakaláři DataConnector integration
+2. **Testing**: Add comprehensive test suite
+3. **Monitoring**: Implement application monitoring and logging
+4. **Performance**: Add caching and database optimization
+5. **Security Audit**: Conduct thorough security review
 
-### XP Economy
-- Denní rozpočty pro učitele
-- Idempotentní udělování XP
-- Sledování historie XP
-- Výpočet úrovní
+## 📁 Project Structure
 
-### Achievements
-- Manuální udělování úspěchů
-- Sledování odemčených úspěchů
-- Badge systém
-
-### Shop & Items
-- Kosmetické předměty
-- Rarity systém (Common, Uncommon, Rare, Epic, Legendary)
-- Nákup a vlastnictví předmětů
-
-## 🔒 Bezpečnost
-
-- JWT-based autentifikace
-- Role-based access control (RBAC)
-- Validace vstupů pomocí Zod
-- PII-free logování
-- Transakční integrita pro kritické operace
-
-## 📊 Monitoring a Logs
-
-- Systémové logy bez PII
-- Request ID propagation
-- Health check endpoint (`/api/health`)
-- Automatické zálohy (22:00 denně)
-
-## 🧪 Vývoj
-
-### Dostupné skripty
-
-```bash
-# Vývoj
-npm run dev          # Spustit vývojový server
-npm run build        # Build pro produkci
-npm run start        # Spustit produkční server
-
-# Databáze
-npm run prisma:generate  # Generovat Prisma client
-npm run prisma:migrate   # Spustit migrace
-npm run prisma:studio    # Otevřít Prisma Studio
-
-# Linting
-npm run lint         # ESLint kontrola
+```
+app/
+├── (app)/              # App router pages
+│   └── dashboard/      # Dashboard pages
+├── api/                # API routes
+│   ├── auth/           # Authentication endpoints
+│   ├── jobs/           # Job management endpoints
+│   └── xp/             # XP system endpoints
+├── components/         # React components
+│   ├── ui/             # Reusable UI components
+│   └── dashboard/      # Dashboard-specific components
+├── lib/                # Utility libraries
+│   ├── generated/      # Prisma generated client
+│   ├── services/       # Business logic services
+│   └── utils.ts        # Utility functions
+└── prisma/             # Database schema and migrations
 ```
 
-### Konvence kódu
+## 🤝 Contributing
 
-- **TypeScript strict mode** - Žádné `any` typy
-- **Server Components** pro data fetching
-- **Client Components** pro interaktivitu
-- **Zod validace** na API hranicích
-- **Prisma transakce** pro kritické operace
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
-### Testování
+## 📄 License
 
-```bash
-# Unit testy
-npm run test
+This project is licensed under the MIT License.
 
-# E2E testy
-npm run test:e2e
-```
+## 🆘 Support
 
-## 🚀 Nasazení
-
-### Produkční build
-
-```bash
-npm run build
-npm run start
-```
-
-### Docker nasazení
-
-```bash
-# Build image
-docker build -t edurpg .
-
-# Spustit container
-docker run -p 3000:3000 edurpg
-```
-
-## 📚 Dokumentace
-
-- [Architektura](./docs/ARCHITECTURE.md)
-- [API Specifikace](./docs/API_SPEC.md)
-- [Technologie](./docs/TECHNOLOGY.md)
-- [Úkoly](./docs/TASKS.md)
-
-## 🤝 Přispívání
-
-1. Fork repozitáře
-2. Vytvořte feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit změny (`git commit -m 'Add amazing feature'`)
-4. Push do branch (`git push origin feature/amazing-feature`)
-5. Otevřete Pull Request
-
-## 📄 Licence
-
-Tento projekt je licencován pod MIT licencí - viz [LICENSE](LICENSE) soubor pro detaily.
-
-## 🆘 Podpora
-
-Pro podporu a otázky:
-- Otevřete Issue na GitHubu
-- Kontaktujte vývojový tým
-- Viz dokumentace v `/docs` složce
+For support and questions, please contact the development team.
 
 ---
 
-**EduRPG** - Transformujte vzdělávání pomocí gamifikace! 🎮📚
+**⚠️ Warning**: This application is currently in development. Do not use in production without implementing proper authentication and security measures.
