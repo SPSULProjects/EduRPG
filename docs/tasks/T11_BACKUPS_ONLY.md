@@ -13,7 +13,7 @@ Nightly database backups & restore runbook (no CI/CD).
 - Backups present daily; restore verified in staging.
 
 ## Checklist
-- [ ] backup.sh
-- [ ] Cron docs
-- [ ] Restore doc
-- [ ] Verification steps
+- [x] backup.sh
+- [x] Cron docs
+- [x] Restore doc
+- [x] Verification steps
