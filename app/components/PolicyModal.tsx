@@ -27,11 +27,11 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
 
   const handleAcknowledge = async () => {
-    if (!session.data?.user?.id) return
+    if (session.status === "loading" || !session.data?.user?.id) return
 
     try {
       setIsAcknowledging(true)
-      await acknowledgePolicy(session.data.user.id)
+      await acknowledgePolicy(session.data?.user?.id!)
       setHasAcknowledged(true)
       onClose()
     } catch (error) {
@@ -168,19 +168,19 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
               <CardContent className="p-4">
                 <h3 className="font-medium text-blue-900 mb-2">
                   Vaše role: {
-                    session.data.user.role === "STUDENT" ? "Student" :
-                    session.data.user.role === "TEACHER" ? "Učitel" :
+                    session.data?.user?.role === "STUDENT" ? "Student" :
+                    session.data?.user?.role === "TEACHER" ? "Učitel" :
                     "Operátor"
                   }
                 </h3>
                 <p className="text-sm text-blue-800">
-                  {session.data.user.role === "STUDENT" && 
+                  {session.data?.user?.role === "STUDENT" && 
                     "Můžete se přihlašovat k úkolům, získávat XP a účastnit se událostí."
                   }
-                  {session.data.user.role === "TEACHER" && 
+                  {session.data?.user?.role === "TEACHER" && 
                     "Můžete vytvářet úkoly, udělovat XP a spravovat své třídy."
                   }
-                  {session.data.user.role === "OPERATOR" && 
+                  {session.data?.user?.role === "OPERATOR" && 
                     "Máte přístup ke všem systémovým funkcím a můžete spravovat platformu."
                   }
                 </p>

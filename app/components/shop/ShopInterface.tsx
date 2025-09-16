@@ -53,7 +53,7 @@ export function ShopInterface({ userId, userRole }: ShopInterfaceProps) {
       }
       
       const data = await response.json()
-      setShopData(data)
+      setShopData(data.data || data)
     } catch (error) {
       console.error("Error fetching shop data:", error)
       setError(error instanceof Error ? error.message : "Failed to load shop data")

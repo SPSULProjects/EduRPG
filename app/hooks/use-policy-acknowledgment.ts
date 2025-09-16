@@ -10,6 +10,10 @@ export function usePolicyAcknowledgment() {
 
   useEffect(() => {
     const checkPolicyAcknowledgment = async () => {
+      if (session.status === "loading") {
+        return
+      }
+      
       if (!session.data?.user?.id) {
         setIsLoading(false)
         return
@@ -35,7 +39,7 @@ export function usePolicyAcknowledgment() {
     }
 
     checkPolicyAcknowledgment()
-  }, [session.data?.user?.id])
+  }, [session.status, session.data?.user?.id])
 
   return {
     hasAcknowledged,
