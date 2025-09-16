@@ -65,11 +65,11 @@ export function StudentDashboard({ userId, classId }: StudentDashboardProps) {
       const xpData = await xpResponse.json()
       
       // Add safety checks for the response data
-      if (!jobsData || !Array.isArray(jobsData.jobs)) {
+      if (!jobsData || !jobsData.data || !Array.isArray(jobsData.data.jobs)) {
         console.warn("Invalid jobs data received:", jobsData)
         setJobs([])
       } else {
-        setJobs(jobsData.jobs)
+        setJobs(jobsData.data.jobs)
       }
       
       if (!xpData || typeof xpData.totalXP !== 'number') {

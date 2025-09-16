@@ -56,12 +56,12 @@ export function TeacherDashboard({ userId }: TeacherDashboardProps) {
     try {
       const [jobsResponse, budgetsResponse] = await Promise.all([
         fetch("/api/jobs"),
-        fetch("/api/xp/budgets")
+        fetch("/api/teacher/budget/today")
       ])
       
       if (jobsResponse.ok) {
         const jobsData = await jobsResponse.json()
-        setJobs(jobsData.jobs || [])
+        setJobs(jobsData.data?.jobs || [])
       }
       
       if (budgetsResponse.ok) {
