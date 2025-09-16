@@ -5,6 +5,7 @@ import { prisma } from "./prisma"
 import { LogLevel } from "./generated"
 import { NextRequest } from "next/server"
 import { createSafeLogMetadata, validateLogEntry } from "./security/pii-redaction"
+import { safePayload } from "../src/lib/security/redact"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -29,10 +30,11 @@ export async function logEvent(
       return
     }
 
-    // Create safe metadata
+    // Create safe metadata using enhanced redaction
     const safeMetadata = createSafeLogMetadata({
       ...options,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      metadata: options.metadata ? safePayload(options.metadata) : undefined
     })
 
     await prisma.systemLog.create({

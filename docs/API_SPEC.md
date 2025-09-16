@@ -39,13 +39,10 @@
 - `GET /api/events` → list events (all users, operators can see inactive with `?includeInactive=true`)
 - `POST /api/events/:id/participate` → mark participation & grant bonus (all authenticated users)
 
-## Error Response Format
-All endpoints return consistent error responses:
+## Error Envelope (standard)
+All endpoints return on error:
 ```json
-{
-  "code": "ERROR_CODE",
-  "message": "Human readable error message"
-}
+{ "ok": false, "code": "SOME_CODE", "message": "Human readable", "requestId": "uuid", "details": { } }
 ```
 
 ## Status Codes
