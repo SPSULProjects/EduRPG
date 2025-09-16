@@ -12,230 +12,20 @@ import {
   mockRequireStudent,
   mockRequireTeacher,
   mockRequireOperator,
-  mockRequireRoleForbidden
-} from "@/app/lib/__tests__/mocks/auth"
-import { mockBakalariClient } from "@/app/lib/__tests__/mocks/bakalari"
+  mockRequireRoleForbidden,
+  mockBakalariClient,
+  resetAllMocks
+} from "@/tests/setup/mocks"
 
-// Mock NextAuth
-vi.mock("next-auth", () => ({
-  getServerSession: vi.fn(),
-  default: vi.fn()
-}))
-
-// Mock RBAC functions
-vi.mock("@/app/lib/rbac", () => ({
-  requireStudent: vi.fn().mockResolvedValue({
-    id: "student1",
-    email: "jan.novak@school.cz",
-    name: "Jan Novák",
-    role: "STUDENT",
-    classId: "class1"
-  }),
-  requireTeacher: vi.fn().mockResolvedValue({
-    id: "teacher1",
-    email: "petr.dvorak@school.cz",
-    name: "Petr Dvořák",
-    role: "TEACHER"
-  }),
-  requireOperator: vi.fn().mockResolvedValue({
-    id: "operator1",
-    email: "admin@school.cz",
-    name: "Admin Admin",
-    role: "OPERATOR",
-    bakalariToken: "mock_token_operator1"
-  })
-}))
-
-// Mock Bakaláři client
-vi.mock("@/app/lib/bakalari/bakalari", () => ({
-  loginToBakalariAndFetchUserData: vi.fn(),
-  BakalariUserData: {}
-}))
-
-// Mock Prisma
-vi.mock("@/app/lib/prisma", () => ({
-  prisma: {
-    $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
-    user: {
-      count: vi.fn().mockResolvedValue(10),
-      findUnique: vi.fn()
-    },
-    class: {
-      findFirst: vi.fn(),
-      create: vi.fn()
-    },
-    subject: {
-      findFirst: vi.fn(),
-      create: vi.fn()
-    },
-    userClassSubject: {
-      findFirst: vi.fn(),
-      create: vi.fn()
-    }
-  }
-}))
-
-// Mock services
-vi.mock("@/app/lib/services/events", () => ({
-  EventsService: {
-    getEvents: vi.fn().mockResolvedValue([]),
-    createEvent: vi.fn().mockResolvedValue({
-      id: "event1",
-      title: "Test Event",
-      description: "Test Description",
-      startsAt: new Date().toISOString(),
-      endsAt: new Date().toISOString(),
-      xpBonus: 50,
-      rarityReward: "COMMON",
-      isActive: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    })
-  }
-}))
-
-vi.mock("@/app/lib/services/jobs", () => ({
-  JobsService: {
-    getJobsForStudent: vi.fn().mockResolvedValue([
-      {
-        id: "job1",
-        title: "Test Job",
-        description: "Test Description",
-        subjectId: "subject1",
-        subjectName: "Math",
-        xpReward: 100,
-        moneyReward: 50,
-        maxStudents: 1,
-        status: "OPEN",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        teacherId: "teacher1",
-        teacherName: "Test Teacher"
-      }
-    ]),
-    getJobsForTeacher: vi.fn().mockResolvedValue([
-      {
-        id: "job1",
-        title: "Test Job",
-        description: "Test Description",
-        subjectId: "subject1",
-        subjectName: "Math",
-        xpReward: 100,
-        moneyReward: 50,
-        maxStudents: 1,
-        status: "OPEN",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        teacherId: "teacher1",
-        teacherName: "Test Teacher",
-        applications: []
-      }
-    ]),
-    getJobsForOperator: vi.fn().mockResolvedValue([]),
-    createJob: vi.fn().mockResolvedValue({
-      id: "job1",
-      title: "Test Job",
-      description: "Test Description",
-      subjectId: "subject1",
-      xpReward: 100,
-      moneyReward: 50,
-      maxStudents: 1,
-      status: "OPEN",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      teacherId: "teacher1"
-    }),
-    applyForJob: vi.fn().mockResolvedValue({
-      id: "app1",
-      jobId: "job1",
-      studentId: "student1",
-      status: "PENDING",
-      appliedAt: new Date().toISOString()
-    }),
-    reviewApplication: vi.fn()
-  }
-}))
-
-vi.mock("@/app/lib/services/xp", () => ({
-  XPService: {
-    getStudentXP: vi.fn().mockResolvedValue({
-      totalXP: 100,
-      recentGrants: []
-    }),
-    grantXP: vi.fn().mockResolvedValue({
-      id: "xp1",
-      studentId: "student1",
-      subjectId: "subject1",
-      amount: 100,
-      reason: "Test grant",
-      grantedAt: new Date().toISOString(),
-      createdAt: new Date().toISOString(),
-      grantedBy: "teacher1"
-    })
-  }
-}))
-
-vi.mock("@/app/lib/services/shop", () => ({
-  ShopService: {
-    getItems: vi.fn().mockResolvedValue([]),
-    getUserBalance: vi.fn().mockResolvedValue(1000),
-    getUserPurchases: vi.fn().mockResolvedValue([]),
-    buyItem: vi.fn().mockResolvedValue({
-      id: "purchase1",
-      itemId: "item1",
-      studentId: "student1",
-      price: 100,
-      purchasedAt: new Date().toISOString()
-    })
-  }
-}))
-
-vi.mock("@/app/lib/services/items", () => ({
-  ItemsService: {
-    getAllItems: vi.fn().mockResolvedValue([]),
-    createItem: vi.fn()
-  }
-}))
-
-vi.mock("@/app/lib/services/sync-bakalari", () => ({
-  syncBakalariData: vi.fn().mockResolvedValue({
-    success: true,
-    runId: "sync123",
-    startedAt: new Date().toISOString(),
-    completedAt: new Date().toISOString(),
-    durationMs: 1000,
-    classesCreated: 1,
-    classesUpdated: 0,
-    usersCreated: 1,
-    usersUpdated: 0,
-    subjectsCreated: 1,
-    subjectsUpdated: 0,
-    enrollmentsCreated: 1,
-    enrollmentsUpdated: 0
-  })
-}))
-
-vi.mock("@/app/lib/auth/guards", () => ({
-  guardApiRoute: vi.fn().mockResolvedValue({
-    error: null,
-    user: { id: "operator1", role: "OPERATOR" }
-  })
-}))
-
-vi.mock("@/app/lib/utils", () => ({
-  logEvent: vi.fn(),
-  getRequestIdFromRequest: vi.fn().mockReturnValue("test-request-id"),
-  generateRequestId: vi.fn().mockReturnValue("test-request-id")
-}))
+// All mocks are now handled centrally in tests/setup/mocks.ts
 
 describe("API Integration Tests", () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    mockBakalariClient.reset()
+    resetAllMocks()
   })
 
   afterEach(() => {
-    vi.restoreAllMocks()
+    resetAllMocks()
   })
 
   describe("Health Check", () => {
@@ -256,7 +46,7 @@ describe("API Integration Tests", () => {
 
   describe("Authentication", () => {
     it("should authenticate with valid credentials", async () => {
-      const { loginToBakalariAndFetchUserData } = await import("@/app/lib/bakalari/bakalari")
+      const { loginToBakalariAndFetchUserData } = await import("@/app/lib/bakalari")
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
         userID: "student1",
         userName: "Jan Novák",

@@ -1,20 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { authOptions } from '../auth'
 import { UserRole } from '../generated'
-import { mockPrisma } from '../../../vitest.setup'
+import { mockPrisma, resetAllMocks } from '../../../tests/setup/mocks'
 
-// Mock dependencies
-vi.mock('../utils', () => ({
-  logEvent: vi.fn()
-}))
-
-vi.mock('../bakalari/bakalari', () => ({
-  loginToBakalariAndFetchUserData: vi.fn()
-}))
+// All mocks are now handled centrally in tests/setup/mocks.ts
 
 describe('Authentication', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    resetAllMocks()
   })
 
   describe('Credentials Provider', () => {
@@ -38,7 +31,7 @@ describe('Authentication', () => {
     })
 
     it('should handle Bakalari authentication success', async () => {
-      const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
+      const { loginToBakalariAndFetchUserData } = await import('../bakalari')
       const { logEvent } = await import('../utils')
       
       // Mock successful Bakalari response
@@ -90,7 +83,7 @@ describe('Authentication', () => {
     })
 
     it('should handle Bakalari authentication failure', async () => {
-      const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
+      const { loginToBakalariAndFetchUserData } = await import('../bakalari')
       
       // Mock failed Bakalari response
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
@@ -110,7 +103,7 @@ describe('Authentication', () => {
     })
 
     it('should handle missing user data', async () => {
-      const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
+      const { loginToBakalariAndFetchUserData } = await import('../bakalari')
       
       // Mock successful login but no user data
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
@@ -132,7 +125,7 @@ describe('Authentication', () => {
 
   describe('Role Mapping', () => {
     it('should map student role correctly', async () => {
-      const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
+      const { loginToBakalariAndFetchUserData } = await import('../bakalari')
       
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
         status: { success: true, loginFailed: false, userDataFailed: false },
@@ -175,7 +168,7 @@ describe('Authentication', () => {
     })
 
     it('should map teacher role correctly', async () => {
-      const { loginToBakalariAndFetchUserData } = await import('../bakalari/bakalari')
+      const { loginToBakalariAndFetchUserData } = await import('../bakalari')
       
       vi.mocked(loginToBakalariAndFetchUserData).mockResolvedValue({
         status: { success: true, loginFailed: false, userDataFailed: false },

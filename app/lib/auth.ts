@@ -3,7 +3,7 @@ import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import { UserRole } from "./generated"
 import { z } from "zod"
-import { loginToBakalariAndFetchUserData, BakalariUserData } from "./bakalari/bakalari"
+import { loginToBakalariAndFetchUserData, BakalariUserData } from "./bakalari"
 import { logEvent, getRequestIdFromRequest } from "./utils"
 import { loginRateLimit } from "./security/rate-limiting"
 

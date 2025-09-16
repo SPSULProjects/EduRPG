@@ -1,4 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
+import { seedTestData, cleanupTestData } from './tests/setup/seed';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -22,6 +23,29 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+  },
+
+  /* Global setup and teardown */
+  globalSetup: async () => {
+    console.log('🚀 Setting up Playwright tests...');
+    try {
+      await seedTestData();
+      console.log('✅ Test data seeded successfully');
+    } catch (error) {
+      console.error('❌ Failed to seed test data:', error);
+      throw error;
+    }
+  },
+
+  globalTeardown: async () => {
+    console.log('🧹 Cleaning up Playwright tests...');
+    try {
+      await cleanupTestData();
+      console.log('✅ Test data cleaned up successfully');
+    } catch (error) {
+      console.error('❌ Failed to cleanup test data:', error);
+      // Don't throw here to avoid masking test failures
+    }
   },
 
   /* Configure projects for major browsers */
