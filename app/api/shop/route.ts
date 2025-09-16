@@ -4,11 +4,62 @@ import { authOptions } from "@/app/lib/auth"
 import { ShopService } from "@/app/lib/services/shop"
 import { requireStudent } from "@/app/lib/rbac"
 import { z } from "zod"
-import { withApiErrorEnvelope, createAuthErrorResponse, createSuccessNextResponse } from "@/app/lib/http/error"
+// Inline error handling to avoid Next.js client component issues
 
 const buyItemSchema = z.object({
   itemId: z.string().cuid()
 })
+
+// Inline error response helpers
+function createAuthErrorResponse(requestId?: string): NextResponse {
+  return NextResponse.json({
+    ok: false,
+    code: 'UNAUTHORIZED',
+    message: "Authentication required",
+    requestId
+  }, { status: 401 })
+}
+
+function createSuccessNextResponse<T>(data: T, requestId?: string, status: number = 200): NextResponse {
+  return NextResponse.json({
+    ok: true,
+    data,
+    requestId
+  }, { status })
+}
+
+// Inline error envelope wrapper
+function withApiErrorEnvelope<T extends any[], R>(
+  handler: (request: any, ...args: T) => Promise<R>
+) {
+  return async (request: any, ...args: T): Promise<NextResponse> => {
+    try {
+      const result = await handler(request, ...args)
+      
+      if (result instanceof NextResponse) {
+        return result
+      }
+      
+      const requestId = request?.headers?.get?.('x-request-id') || undefined
+      return createSuccessNextResponse(result, requestId)
+    } catch (error) {
+      const requestId = request?.headers?.get?.('x-request-id') || undefined
+      
+      console.error("API Error:", {
+        requestId,
+        error: error instanceof Error ? error.message : "Unknown error",
+        stack: error instanceof Error ? error.stack : undefined
+      })
+      
+      return NextResponse.json({
+        ok: false,
+        code: 'INTERNAL_SERVER_ERROR',
+        message: "Internal server error",
+        requestId
+      }, { status: 500 })
+    }
+  }
+}
 
 export const GET = withApiErrorEnvelope(async (request: NextRequest) => {
   const requestId = request.headers.get('x-request-id') || undefined

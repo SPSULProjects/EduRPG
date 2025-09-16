@@ -26,27 +26,9 @@ export default defineConfig({
   },
 
   /* Global setup and teardown */
-  globalSetup: async () => {
-    console.log('🚀 Setting up Playwright tests...');
-    try {
-      await seedTestData();
-      console.log('✅ Test data seeded successfully');
-    } catch (error) {
-      console.error('❌ Failed to seed test data:', error);
-      throw error;
-    }
-  },
+  globalSetup: './tests/setup/global-setup.ts',
 
-  globalTeardown: async () => {
-    console.log('🧹 Cleaning up Playwright tests...');
-    try {
-      await cleanupTestData();
-      console.log('✅ Test data cleaned up successfully');
-    } catch (error) {
-      console.error('❌ Failed to cleanup test data:', error);
-      // Don't throw here to avoid masking test failures
-    }
-  },
+  globalTeardown: './tests/setup/global-teardown.ts',
 
   /* Configure projects for major browsers */
   projects: [

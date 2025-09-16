@@ -481,7 +481,13 @@ export function createMockRequest(
     requestInit.body = JSON.stringify(body)
   }
 
-  return new NextRequest(url, requestInit)
+  // Create a new RequestInit object without null signal for NextRequest compatibility
+  const nextRequestInit: any = { ...requestInit }
+  if (nextRequestInit.signal === null) {
+    delete nextRequestInit.signal
+  }
+  
+  return new NextRequest(url, nextRequestInit)
 }
 
 export const mockUtils = {

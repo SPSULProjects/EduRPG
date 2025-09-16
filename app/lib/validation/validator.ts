@@ -30,7 +30,7 @@ export async function validateRequest<T = any>(
   request: NextRequest,
   options: ValidationOptions
 ): Promise<ValidationResult<T> | ValidationError> {
-  const requestId = getRequestIdFromRequest(request)
+  const requestId = getRequestIdFromRequest(request) || 'unknown'
   
   try {
     const validatedData: any = {}

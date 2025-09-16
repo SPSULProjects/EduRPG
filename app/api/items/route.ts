@@ -14,13 +14,36 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export const POST = withValidation(
-  { body: createItemSchema },
-  async (data: { body: CreateItemRequest }, request: NextRequest, requestId: string) => {
+export async function POST(request: NextRequest) {
+  try {
+    const requestId = request.headers.get('x-request-id') || undefined
+    
+    // Parse and validate request body
+    const body = await request.json()
+    const validatedData = createItemSchema.parse(body)
+    
     const user = await requireOperator()
     
-    const item = await ItemsService.createItem(data.body)
+    const item = await ItemsService.createItem(validatedData)
     
-    return NextResponse.json({ item }, { status: 201 })
+    return NextResponse.json({ 
+      ok: true,
+      data: { item },
+      requestId 
+    }, { status: 201 })
+  } catch (error) {
+    const requestId = request.headers.get('x-request-id') || undefined
+    console.error("API Error:", {
+      requestId,
+      error: error instanceof Error ? error.message : "Unknown error",
+      stack: error instanceof Error ? error.stack : undefined
+    })
+    
+    return NextResponse.json({
+      ok: false,
+      code: 'INTERNAL_SERVER_ERROR',
+      message: "Internal server error",
+      requestId
+    }, { status: 500 })
   }
-)
+}

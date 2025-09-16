@@ -3,7 +3,8 @@
  * Provides test users and data for consistent E2E testing
  */
 
-import { PrismaClient, UserRole } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { UserRole } from '@/app/lib/generated'
 
 const prisma = new PrismaClient()
 

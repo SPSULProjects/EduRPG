@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
-import { logEvent } from "../utils"
 
 /**
  * Standardized HTTP error response envelope
@@ -246,8 +245,10 @@ export function withErrorEnvelope<T extends any[], R>(
       // Extract requestId from the first argument if it's a NextRequest
       const requestId = args[0]?.headers?.get?.('x-request-id') || undefined
       
-      // Log the error
+      // Log the error (optional - will fallback to console if logging fails)
       try {
+        // Dynamic import to avoid client-side bundling issues
+        const { logEvent } = await import("../utils")
         await logEvent("ERROR", "api_error", {
           requestId,
           metadata: {
@@ -285,8 +286,10 @@ export function withApiErrorEnvelope<T extends any[], R>(
     } catch (error) {
       const requestId = request?.headers?.get?.('x-request-id') || undefined
       
-      // Log the error
+      // Log the error (optional - will fallback to console if logging fails)
       try {
+        // Dynamic import to avoid client-side bundling issues
+        const { logEvent } = await import("../utils")
         await logEvent("ERROR", "api_error", {
           requestId,
           metadata: {
