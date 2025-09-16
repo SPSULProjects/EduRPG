@@ -4,6 +4,7 @@ import { authOptions } from "@/app/lib/auth"
 import { EventsService } from "@/app/lib/services/events"
 import { requireOperator } from "@/app/lib/rbac"
 import { z } from "zod"
+import { withApiErrorEnvelope, createAuthErrorResponse, createForbiddenErrorResponse, createSuccessNextResponse } from "@/app/lib/http/error"
 
 const createEventSchema = z.object({
   title: z.string().min(1).max(100),
@@ -14,49 +15,39 @@ const createEventSchema = z.object({
   rarityReward: z.enum(["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"]).optional()
 })
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-    
-    const { searchParams } = new URL(request.url)
-    const includeInactive = searchParams.get("includeInactive") === "true"
-    
-    // Only operators can see inactive events
-    if (includeInactive && session.user.role !== "OPERATOR") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
-    
-    const events = await EventsService.getEvents(includeInactive)
-    return NextResponse.json({ events })
-  } catch (error) {
-    console.error("Events GET error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+export const GET = withApiErrorEnvelope(async (request: NextRequest) => {
+  const requestId = request.headers.get('x-request-id') || undefined
+  
+  const session = await getServerSession(authOptions)
+  if (!session?.user) {
+    return createAuthErrorResponse(requestId)
   }
-}
+  
+  const { searchParams } = new URL(request.url)
+  const includeInactive = searchParams.get("includeInactive") === "true"
+  
+  // Only operators can see inactive events
+  if (includeInactive && session.user.role !== "OPERATOR") {
+    return createForbiddenErrorResponse(requestId)
+  }
+  
+  const events = await EventsService.getEvents(includeInactive)
+  return createSuccessNextResponse({ events }, requestId)
+})
 
-export async function POST(request: NextRequest) {
-  try {
-    const user = await requireOperator()
-    const body = await request.json()
-    
-    const validatedData = createEventSchema.parse(body)
-    
-    const event = await EventsService.createEvent({
-      ...validatedData,
-      startsAt: new Date(validatedData.startsAt),
-      endsAt: validatedData.endsAt ? new Date(validatedData.endsAt) : undefined
-    }, user.id)
-    
-    return NextResponse.json({ event }, { status: 201 })
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 })
-    }
-    
-    console.error("Events POST error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
+export const POST = withApiErrorEnvelope(async (request: NextRequest) => {
+  const requestId = request.headers.get('x-request-id') || undefined
+  
+  const user = await requireOperator()
+  const body = await request.json()
+  
+  const validatedData = createEventSchema.parse(body)
+  
+  const event = await EventsService.createEvent({
+    ...validatedData,
+    startsAt: new Date(validatedData.startsAt),
+    endsAt: validatedData.endsAt ? new Date(validatedData.endsAt) : undefined
+  }, user.id)
+  
+  return createSuccessNextResponse({ event }, requestId, 201)
+})
