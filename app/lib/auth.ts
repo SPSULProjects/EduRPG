@@ -5,6 +5,7 @@ import { UserRole } from "./generated"
 import { z } from "zod"
 import { loginToBakalariAndFetchUserData, BakalariUserData } from "./bakalari/bakalari"
 import { logEvent, getRequestIdFromRequest } from "./utils"
+import { loginRateLimit } from "./security/rate-limiting"
 
 // Validation schema for credentials
 const credentialsSchema = z.object({
@@ -104,6 +105,32 @@ export const authOptions: NextAuthOptions = {
         try {
           // Validate input
           const validatedCredentials = credentialsSchema.parse(credentials)
+          
+          // Check rate limit for login attempts
+          const rateLimitKey = `login:${validatedCredentials.username}`
+          const rateLimitResult = loginRateLimit.checkRateLimit(rateLimitKey)
+          
+          if (!rateLimitResult.allowed) {
+            // Log rate limit exceeded
+            try {
+              await logEvent("WARN", "Login rate limit exceeded", {
+                metadata: {
+                  username: validatedCredentials.username,
+                  blocked: rateLimitResult.blocked,
+                  remaining: rateLimitResult.remaining,
+                  resetTime: rateLimitResult.resetTime
+                }
+              })
+            } catch (logError) {
+              console.warn("Failed to log rate limit exceeded:", logError)
+            }
+            
+            throw new Error(
+              rateLimitResult.blocked 
+                ? "Too many login attempts. Please try again later."
+                : "Too many login attempts. Please slow down."
+            )
+          }
           
           // Log authentication attempt (without PII)
           try {
@@ -247,7 +274,36 @@ export const authOptions: NextAuthOptions = {
   },
   // Security settings
   secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development"
+  debug: process.env.NODE_ENV === "development",
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
+  }
 }
 
 // Type augmentation for NextAuth

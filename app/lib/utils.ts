@@ -4,13 +4,14 @@ import { randomUUID } from "crypto"
 import { prisma } from "./prisma"
 import { LogLevel } from "./generated"
 import { NextRequest } from "next/server"
+import { createSafeLogMetadata, validateLogEntry } from "./security/pii-redaction"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 /**
- * Logs an event to the SystemLog table
+ * Logs an event to the SystemLog table with PII redaction
  */
 export async function logEvent(
   level: LogLevel,
@@ -22,19 +23,32 @@ export async function logEvent(
   } = {}
 ) {
   try {
+    // Validate and redact PII before logging
+    if (!validateLogEntry(level, message, options.metadata)) {
+      console.warn('Log entry contains PII and was rejected:', { level, message, options })
+      return
+    }
+
+    // Create safe metadata
+    const safeMetadata = createSafeLogMetadata({
+      ...options,
+      timestamp: new Date().toISOString()
+    })
+
     await prisma.systemLog.create({
       data: {
         level,
         message,
-        userId: options.userId,
-        requestId: options.requestId,
-        metadata: options.metadata ? JSON.parse(JSON.stringify(options.metadata)) : null
+        userId: safeMetadata.userId,
+        requestId: safeMetadata.requestId,
+        metadata: safeMetadata.metadata ? JSON.parse(JSON.stringify(safeMetadata.metadata)) : null
       }
     })
   } catch (error) {
-    // Fallback to console if database logging fails
+    // Fallback to console if database logging fails (with PII redaction)
     console.error("Failed to log to SystemLog:", error)
-    console.log(`[${level}] ${message}`, options)
+    const safeOptions = createSafeLogMetadata(options)
+    console.log(`[${level}] ${message}`, safeOptions)
   }
 }
 

@@ -358,6 +358,11 @@ model SystemLog {
   requestId String?
   metadata  Json?
   
+  // Retention fields (T13)
+  isArchived      Boolean   @default(false)
+  archivedAt      DateTime?
+  retentionStatus String    @default("ACTIVE") // ACTIVE, ARCHIVED, RESTRICTED
+  
   // Relations
   user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   
@@ -370,6 +375,8 @@ model SystemLog {
   @@index([createdAt])
   @@index([level, createdAt])
   @@index([userId, level])
+  @@index([retentionStatus, createdAt])
+  @@index([isArchived, createdAt])
 }
 
 model ExternalRef {

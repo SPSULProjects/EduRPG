@@ -4,10 +4,22 @@ import { checkRouteAccess } from './app/lib/auth/policies'
 import { UserRole } from './app/lib/generated'
 
 // Simple logging function for middleware (Edge Runtime compatible)
+// Note: This is a simplified version for Edge Runtime - full PII redaction is in utils.ts
 function logMiddlewareEvent(level: string, message: string, metadata: Record<string, any> = {}) {
+  // Basic PII redaction for Edge Runtime
+  const safeMetadata = { ...metadata }
+  
+  // Remove common PII fields
+  const piiFields = ['password', 'email', 'phone', 'name', 'username', 'token', 'secret']
+  piiFields.forEach(field => {
+    if (safeMetadata[field]) {
+      safeMetadata[field] = '[REDACTED]'
+    }
+  })
+  
   console.log(`[${level}] ${message}`, {
     timestamp: new Date().toISOString(),
-    ...metadata
+    ...safeMetadata
   })
 }
 
