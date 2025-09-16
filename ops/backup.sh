@@ -36,7 +36,7 @@ main() {
     
     # Verify database connection
     log "Verifying database connection..."
-    if ! pg_isready -d "$DATABASE_URL" >/dev/null 2>&1; then
+    if ! pg_isready "$DATABASE_URL" >/dev/null 2>&1; then
         log "ERROR: Database is not ready"
         exit 1
     fi
