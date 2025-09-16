@@ -57,6 +57,7 @@ model Class {
   updatedAt DateTime @updatedAt
   
   @@index([grade])
+  @@unique([name, grade])
 }
 
 model Subject {
@@ -120,6 +121,10 @@ model Job {
   @@index([subjectId])
   @@index([teacherId])
   @@index([status])
+  @@index([teacherId, status])
+  @@index([subjectId, status])
+  @@index([createdAt])
+  @@index([closedAt])
 }
 
 model JobAssignment {
@@ -141,6 +146,9 @@ model JobAssignment {
   @@index([jobId])
   @@index([studentId])
   @@index([status])
+  @@index([studentId, status])
+  @@index([createdAt])
+  @@index([completedAt])
 }
 
 // XP Economy
@@ -164,6 +172,8 @@ model TeacherDailyBudget {
   @@index([teacherId])
   @@index([subjectId])
   @@index([date])
+  @@index([teacherId, date])
+  @@index([subjectId, date])
 }
 
 model XPAudit {
@@ -181,6 +191,8 @@ model XPAudit {
   
   @@index([userId])
   @@index([requestId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 model MoneyTx {
@@ -200,6 +212,9 @@ model MoneyTx {
   @@index([userId])
   @@index([type])
   @@index([requestId])
+  @@index([userId, type])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Shop & Items
@@ -223,6 +238,8 @@ model Item {
   @@index([rarity])
   @@index([type])
   @@index([isActive])
+  @@index([type, rarity])
+  @@index([isActive, type])
 }
 
 model Purchase {
@@ -240,6 +257,8 @@ model Purchase {
   
   @@index([userId])
   @@index([itemId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Achievements & Badges
@@ -280,6 +299,8 @@ model AchievementAward {
   @@index([userId])
   @@index([achievementId])
   @@index([requestId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // Events
@@ -303,6 +324,8 @@ model Event {
   @@index([startsAt])
   @@index([endsAt])
   @@index([isActive])
+  @@index([isActive, startsAt])
+  @@index([startsAt, endsAt])
 }
 
 model EventParticipation {
@@ -322,6 +345,8 @@ model EventParticipation {
   @@index([eventId])
   @@index([userId])
   @@index([requestId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
 }
 
 // System Logging & Audit
@@ -343,6 +368,8 @@ model SystemLog {
   @@index([userId])
   @@index([requestId])
   @@index([createdAt])
+  @@index([level, createdAt])
+  @@index([userId, level])
 }
 
 model ExternalRef {
