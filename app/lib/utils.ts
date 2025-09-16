@@ -5,7 +5,7 @@ import { prisma } from "./prisma"
 import { LogLevel } from "./generated"
 import { NextRequest } from "next/server"
 import { createSafeLogMetadata, validateLogEntry } from "./security/pii-redaction"
-import { safePayload } from "../src/lib/security/redact"
+import { safePayload } from "../../src/lib/security/redact"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))

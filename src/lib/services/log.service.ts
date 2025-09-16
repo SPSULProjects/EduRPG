@@ -1,6 +1,6 @@
 // src/lib/services/log.service.ts
-import { prisma } from "@/src/lib/db";
-import { safePayload } from "@/src/lib/security/redact";
+import { prisma } from "../../../app/lib/prisma";
+import { safePayload } from "../security/redact";
 
 export type LogType =
   | "auth_success" | "auth_fail"
