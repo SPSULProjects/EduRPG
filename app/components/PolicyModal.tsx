@@ -22,16 +22,16 @@ interface PolicyModalProps {
 }
 
 export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
-  const session = useSession()
+  const { data: session, status } = useSession()
   const [isAcknowledging, setIsAcknowledging] = useState(false)
   const [hasAcknowledged, setHasAcknowledged] = useState(false)
 
   const handleAcknowledge = async () => {
-    if (session.status === "loading" || !session.data?.user?.id) return
+    if (status !== "authenticated" || !session?.user?.id) return
 
     try {
       setIsAcknowledging(true)
-      await acknowledgePolicy(session.data?.user?.id!)
+      await acknowledgePolicy(session?.user?.id!)
       setHasAcknowledged(true)
       onClose()
     } catch (error) {
@@ -163,24 +163,24 @@ export function PolicyModal({ isOpen, onClose }: PolicyModalProps) {
           </Card>
 
           {/* Role-specific information */}
-          {session.data?.user?.role && (
+          {session?.user?.role && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-4">
                 <h3 className="font-medium text-blue-900 mb-2">
                   Vaše role: {
-                    session.data?.user?.role === "STUDENT" ? "Student" :
-                    session.data?.user?.role === "TEACHER" ? "Učitel" :
+                    session?.user?.role === "STUDENT" ? "Student" :
+                    session?.user?.role === "TEACHER" ? "Učitel" :
                     "Operátor"
                   }
                 </h3>
                 <p className="text-sm text-blue-800">
-                  {session.data?.user?.role === "STUDENT" && 
+                  {session?.user?.role === "STUDENT" && 
                     "Můžete se přihlašovat k úkolům, získávat XP a účastnit se událostí."
                   }
-                  {session.data?.user?.role === "TEACHER" && 
+                  {session?.user?.role === "TEACHER" && 
                     "Můžete vytvářet úkoly, udělovat XP a spravovat své třídy."
                   }
-                  {session.data?.user?.role === "OPERATOR" && 
+                  {session?.user?.role === "OPERATOR" && 
                     "Máte přístup ke všem systémovým funkcím a můžete spravovat platformu."
                   }
                 </p>

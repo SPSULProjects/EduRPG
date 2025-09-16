@@ -1,17 +1,7 @@
-import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/lib/auth"
-import { AppLayoutWrapper } from "@/app/components/layout/AppLayoutWrapper"
+"use client";
 
-interface AppLayoutProps {
-  children: React.ReactNode
-}
+import RequireAuth from "@/src/components/auth/RequireAuth";
 
-export default async function AppLayout({ children }: AppLayoutProps) {
-  const session = await getServerSession(authOptions)
-  
-  return (
-    <AppLayoutWrapper session={session}>
-      {children}
-    </AppLayoutWrapper>
-  )
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return <RequireAuth>{children}</RequireAuth>;
 }
