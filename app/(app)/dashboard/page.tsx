@@ -5,6 +5,7 @@ import { StudentDashboard } from "@/app/components/dashboard/StudentDashboard"
 import { TeacherDashboard } from "@/app/components/dashboard/TeacherDashboard"
 import { OperatorDashboard } from "@/app/components/dashboard/OperatorDashboard"
 import { UserRole } from "@/app/lib/generated"
+import { DashboardHeader } from "@/app/components/dashboard/DashboardHeader"
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions)
@@ -15,21 +16,11 @@ export default async function DashboardPage() {
   
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-            Vítejte, {session.user?.name || "Uživateli"}!
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Role: {
-              session.user?.role === UserRole.STUDENT ? "Student" :
-              session.user?.role === UserRole.TEACHER ? "Učitel" :
-              "Operátor"
-            }
-          </p>
-        </div>
-      </div>
+      {/* Welcome Header with Action Buttons */}
+      <DashboardHeader 
+        userName={session.user?.name || "Uživateli"}
+        userRole={session.user?.role}
+      />
       
       {/* Role-specific Dashboard */}
       {session.user?.role === UserRole.STUDENT && session.user?.id && (
