@@ -14,7 +14,12 @@ const credentialsSchema = z.object({
 })
 
 // Helper function to map Bakalari user type to our UserRole
-const mapBakalariUserTypeToRole = (userType: string): UserRole => {
+const mapBakalariUserTypeToRole = (userType: string, username?: string): UserRole => {
+  // Special override for specific usernames that should always be Operator
+  if (username === "kucaba") {
+    return UserRole.OPERATOR
+  }
+  
   switch (userType.toLowerCase()) {
     case "student":
       return UserRole.STUDENT
@@ -29,7 +34,7 @@ const mapBakalariUserTypeToRole = (userType: string): UserRole => {
 }
 
 // Helper function to create or update user from Bakalari data
-const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariToken: string) => {
+const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariToken: string, username?: string) => {
   try {
     console.log("Starting user upsert with bakalariId:", bakalariData.userID)
     // Use transaction for atomicity and performance
@@ -67,7 +72,7 @@ const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariTo
         create: {
           email: `${bakalariData.userID}@bakalari.local`, // Generate email from Bakalari ID
           name: bakalariData.fullUserName,
-          role: mapBakalariUserTypeToRole(bakalariData.userType),
+          role: mapBakalariUserTypeToRole(bakalariData.userType, username),
           bakalariId: bakalariData.userID,
           bakalariToken: bakalariToken,
           classId: classId
@@ -209,7 +214,7 @@ export const authOptions: NextAuthOptions = {
             userType: bakalariResult.data.userType,
             classAbbrev: bakalariResult.data.classAbbrev
           })
-          const user = await upsertUserFromBakalari(bakalariResult.data, bakalariToken)
+          const user = await upsertUserFromBakalari(bakalariResult.data, bakalariToken, validatedCredentials.username)
           console.log("User created/updated:", user)
 
           // Log successful authentication
