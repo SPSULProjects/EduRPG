@@ -152,6 +152,50 @@ export function withRoleGuard<T extends any[], R>(
 }
 
 /**
+ * Check if a user can manage another user based on roles
+ */
+export function canManageUser(managerRole: UserRole, targetRole: UserRole): boolean {
+  // Operators can manage anyone
+  if (managerRole === UserRole.OPERATOR) {
+    return true
+  }
+  
+  // Teachers can manage students
+  if (managerRole === UserRole.TEACHER && targetRole === UserRole.STUDENT) {
+    return true
+  }
+  
+  // Users can always manage themselves
+  if (managerRole === targetRole) {
+    return true
+  }
+  
+  return false
+}
+
+/**
+ * Check if a user can view a specific class
+ */
+export function canViewClass(userRole: UserRole, userClassId?: string, targetClassId?: string): boolean {
+  // Operators can view any class
+  if (userRole === UserRole.OPERATOR) {
+    return true
+  }
+  
+  // Teachers can view any class (for now)
+  if (userRole === UserRole.TEACHER) {
+    return true
+  }
+  
+  // Students can only view their own class
+  if (userRole === UserRole.STUDENT) {
+    return userClassId === targetClassId
+  }
+  
+  return false
+}
+
+/**
  * Higher-order function to wrap server actions with resource access check
  */
 export function withResourceGuard<T extends any[], R>(
@@ -175,43 +219,4 @@ export function withResourceGuard<T extends any[], R>(
     
     return action(user, ...args)
   }
-}
-
-/**
- * Check if current user can manage another user based on role hierarchy
- */
-export function canManageUser(currentUserRole: UserRole, targetUserRole: UserRole): boolean {
-  const roleHierarchy = {
-    [UserRole.OPERATOR]: 3,
-    [UserRole.TEACHER]: 2,
-    [UserRole.STUDENT]: 1
-  }
-  
-  return roleHierarchy[currentUserRole] >= roleHierarchy[targetUserRole]
-}
-
-/**
- * Check if current user can view a specific class
- */
-export function canViewClass(
-  currentUserRole: UserRole, 
-  currentUserClassId?: string, 
-  targetClassId?: string
-): boolean {
-  // Operators can view all classes
-  if (currentUserRole === UserRole.OPERATOR) {
-    return true
-  }
-  
-  // Teachers can view their own class and classes they teach
-  if (currentUserRole === UserRole.TEACHER) {
-    return true // TODO: Implement teacher-class relationship
-  }
-  
-  // Students can only view their own class
-  if (currentUserRole === UserRole.STUDENT) {
-    return currentUserClassId === targetClassId
-  }
-  
-  return false
 }

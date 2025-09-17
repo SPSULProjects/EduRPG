@@ -272,34 +272,11 @@ export const loginToBakalariAndFetchUserData = async (
             console.log("Subject data not available, continuing without it")
         }
 
-        let userRole: string | null = null;
-        if (userDataResponse.userType === "student") {
-            userRole = "Student";
-        } else if (userDataResponse.userType === "teacher") {
-            userRole = "Teacher";
-        } else {
-            userRole = null;
-        }
-
-        // If the role is not recognized, return the user data without conversion.
-        if (!userRole) {
-            return new BakalariLoginReturn(
-                new BakalariLoginStatus(false, false, false),
-                new BakalariUserData({
-                    UserId: userDataResponse.userID,
-                    UserType: userDataResponse.userType,
-                    FullUserName: userDataResponse.fullUserName,
-                    Class: { Abbrev: null, Id: null },
-                }),
-                loginResponse.accessToken
-            );
-        }
-
         // Prepare the final user data. For students, include the class abbreviation.
         const finalUserData = new BakalariUserData({
             UserType: userDataResponse.userType,
             FullUserName: userDataResponse.fullUserName,
-            Class: { Abbrev: userRole === "Student" ? userDataResponse.classAbbrev : null, Id: userDataResponse.classId },
+            Class: { Abbrev: userDataResponse.userType === "student" ? userDataResponse.classAbbrev : null, Id: userDataResponse.classId },
             Subjects: getBakalariSubjectDataResponse
         });
 

@@ -501,7 +501,9 @@ export const mockGuards = {
   guardApiRoute: vi.fn().mockResolvedValue({
     error: null,
     user: { id: "operator1", role: "OPERATOR" }
-  })
+  }),
+  canManageUser: vi.fn(),
+  canViewClass: vi.fn()
 }
 
 // ============================================================================
@@ -592,10 +594,7 @@ export function setupGlobalMocks() {
     syncBakalariData: mockSyncService.syncBakalariData
   }))
 
-  // Mock auth guards
-  vi.mock('@/app/lib/auth/guards', () => ({
-    guardApiRoute: mockGuards.guardApiRoute
-  }))
+  // Note: auth guards are not mocked globally to allow direct testing of utility functions
 
   // Mock utils
   vi.mock('@/app/lib/utils', () => mockUtils)
