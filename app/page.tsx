@@ -1,18 +1,14 @@
 import { getServerSession } from "next-auth"
-import { redirect } from "next/navigation"
 import { authOptions } from "@/app/lib/auth"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/app/components/ui/card"
-import { Sword, Trophy, Users, Target } from "lucide-react"
+import { Sword, Trophy, Users, Target, ArrowRight } from "lucide-react"
 import { LoginButtons } from "@/app/components/LoginButtons"
 import { CTAButton } from "@/app/components/CTAButton"
+import Link from "next/link"
 
 export default async function HomePage() {
   const session = await getServerSession(authOptions)
-  
-  if (session?.user) {
-    redirect("/dashboard")
-  }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -25,7 +21,23 @@ export default async function HomePage() {
           <p className="text-xl md:text-2xl text-gray-600 max-w-3xl mx-auto">
             Transformujte vzdělávání pomocí gamifikace. Úkoly, XP, úspěchy a RPG zážitek pro studenty i učitele.
           </p>
-          <LoginButtons />
+          
+          {/* Show different content based on authentication status */}
+          {session?.user ? (
+            <div className="space-y-4">
+              <p className="text-lg text-gray-700">
+                Vítejte zpět, {session.user.name}!
+              </p>
+              <Link href="/dashboard">
+                <Button size="lg" className="flex items-center space-x-2">
+                  <span>Přejít na dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <LoginButtons />
+          )}
         </div>
       </div>
 

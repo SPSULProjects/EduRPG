@@ -15,7 +15,7 @@ export function DashboardHeader({ userName, userRole }: DashboardHeaderProps) {
   const router = useRouter()
 
   const handleLogout = () => {
-    signOut({ callbackUrl: "/" })
+    signOut({ callbackUrl: "http://192.168.3.9:25586/" })
   }
 
   const handleBackToMain = () => {
