@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth"
 import { redirect } from "next/navigation"
 import { authOptions } from "@/app/lib/auth"
-import { StudentDashboard } from "@/app/components/dashboard/StudentDashboard"
+import { StudentDashboardModern } from "@/app/components/dashboard/StudentDashboardModern"
 import { TeacherDashboard } from "@/app/components/dashboard/TeacherDashboard"
 import { OperatorDashboard } from "@/app/components/dashboard/OperatorDashboard"
 import { UserRole } from "@/app/lib/generated"
@@ -24,7 +24,7 @@ export default async function DashboardPage() {
       
       {/* Role-specific Dashboard */}
       {session.user?.role === UserRole.STUDENT && session.user?.id && (
-        <StudentDashboard userId={session.user.id} classId={session.user.classId} />
+        <StudentDashboardModern userId={session.user.id} classId={session.user.classId} />
       )}
       
       {session.user?.role === UserRole.TEACHER && session.user?.id && (
