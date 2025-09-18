@@ -9,7 +9,7 @@ export default function RequireAuth({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "unauthenticated") router.replace("/login");
+    if (status === "unauthenticated") router.replace("/auth/signin");
   }, [status, router]);
 
   if (status === "loading") return null; // or a spinner
