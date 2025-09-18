@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions)
     if (!session?.user) {
       await logEvent("WARN", "xp_grant_unauthorized", {
-        requestId,
+        ...(requestId && { requestId }),
         metadata: { path: "/api/xp/grant" }
       })
       return createAuthErrorResponse(requestId)
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     // Only teachers and operators can grant XP
     if (session.user.role !== UserRole.TEACHER && session.user.role !== UserRole.OPERATOR) {
       await logEvent("WARN", "xp_grant_forbidden", {
-        requestId,
+        ...(requestId && { requestId }),
         userId: session.user.id,
         metadata: { role: session.user.role }
       })
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }, requestId)
     
     await logEvent("INFO", "xp_grant_success", {
-      requestId,
+      ...(requestId && { requestId }),
       userId: session.user.id,
       metadata: {
         studentId,

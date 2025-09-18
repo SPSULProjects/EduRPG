@@ -24,7 +24,10 @@ export default async function DashboardPage() {
       
       {/* Role-specific Dashboard */}
       {session.user?.role === UserRole.STUDENT && session.user?.id && (
-        <StudentDashboardModern userId={session.user.id} classId={session.user.classId} />
+        <StudentDashboardModern 
+          userId={session.user.id} 
+          {...(session.user.classId && { classId: session.user.classId })}
+        />
       )}
       
       {session.user?.role === UserRole.TEACHER && session.user?.id && (

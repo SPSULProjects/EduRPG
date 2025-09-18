@@ -286,7 +286,7 @@ export async function seedTestData() {
       await prisma.xpGrant.create({
         data: {
           studentId: student.id,
-          subjectId: testSubjects[0].id,
+          subjectId: testSubjects[0]?.id,
           amount: 100,
           reason: 'Initial test XP',
           grantedBy: testUsers.find(u => u.role === UserRole.TEACHER)!.id

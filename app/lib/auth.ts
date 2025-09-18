@@ -91,7 +91,7 @@ const upsertUserFromBakalari = async (bakalariData: BakalariUserData, bakalariTo
 // Helper function to extract grade from class abbreviation
 const extractGradeFromClass = (classAbbrev: string): number => {
   const match = classAbbrev.match(/^(\d+)/)
-  return match ? parseInt(match[1], 10) : 1
+  return match && match[1] ? parseInt(match[1], 10) : 1
 }
 
 export const authOptions: NextAuthOptions = {

@@ -147,14 +147,14 @@ export function getClientIP(request: NextRequest): string {
   const realIP = request.headers.get("x-real-ip")
   
   if (forwarded) {
-    return forwarded.split(",")[0].trim()
+    return forwarded.split(",")[0]?.trim() || "unknown"
   }
   
   if (realIP) {
     return realIP
   }
   
-  return request.ip || "unknown"
+  return "unknown"
 }
 
 // Content Security Policy
@@ -241,7 +241,7 @@ export function escapeHTML(input: string): string {
     "/": "&#x2F;"
   }
   
-  return input.replace(/[&<>"'/]/g, (s) => map[s])
+  return input.replace(/[&<>"'/]/g, (s) => map[s] || s)
 }
 
 // Session security

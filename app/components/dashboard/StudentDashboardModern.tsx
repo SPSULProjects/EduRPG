@@ -110,9 +110,9 @@ export function StudentDashboardModern({ userId, classId }: StudentDashboardProp
     applyForJob({ jobId })
   }
 
-  const currentLevel = calculateLevel(dashboardData?.totalXP || 0)
-  const xpToNextLevel = (currentLevel + 1) * 100 - (dashboardData?.totalXP || 0)
-  const xpProgress = ((dashboardData?.totalXP || 0) % 100) / 100
+  const levelData = calculateLevel(dashboardData?.totalXP || 0)
+  const xpToNextLevel = (levelData.level + 1) * 100 - (dashboardData?.totalXP || 0)
+  const xpProgress = levelData.progress
 
   if (loading && !dashboardData) {
     return (
@@ -165,7 +165,7 @@ export function StudentDashboardModern({ userId, classId }: StudentDashboardProp
           <CardContent>
             <div className="text-2xl font-bold">{formatXP(dashboardData?.totalXP || 0)}</div>
             <p className="text-xs text-muted-foreground">
-              Level {currentLevel}
+              Level {levelData.level}
             </p>
           </CardContent>
         </Card>
@@ -261,7 +261,7 @@ export function StudentDashboardModern({ userId, classId }: StudentDashboardProp
               <CardContent className="pt-6">
                 <div className="text-center text-muted-foreground">
                   <Trophy className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>You haven't applied for any jobs yet.</p>
+                  <p>You haven&apos;t applied for any jobs yet.</p>
                 </div>
               </CardContent>
             </Card>

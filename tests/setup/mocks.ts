@@ -66,15 +66,15 @@ export const mockGetServerSessionUnauthorized = () => {
 
 // RBAC mock functions
 export const mockRequireStudent = () => {
-  return vi.fn().mockResolvedValue(mockSessions.student.user)
+  return vi.fn().mockResolvedValue(mockSessions.student?.user)
 }
 
 export const mockRequireTeacher = () => {
-  return vi.fn().mockResolvedValue(mockSessions.teacher.user)
+  return vi.fn().mockResolvedValue(mockSessions.teacher?.user)
 }
 
 export const mockRequireOperator = () => {
-  return vi.fn().mockResolvedValue(mockSessions.operator.user)
+  return vi.fn().mockResolvedValue(mockSessions.operator?.user)
 }
 
 export const mockRequireRoleForbidden = () => {

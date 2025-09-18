@@ -1,6 +1,6 @@
 import { prisma } from "../prisma"
 
-export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL"
+export type LogLevel = "DEBUG" | "INFO" | "WARN" | "ERROR"
 
 export interface LogContext {
   userId?: string
@@ -47,7 +47,7 @@ export class Logger {
           message: entry.message,
           userId: entry.context.userId,
           requestId: entry.context.requestId,
-          metadata: entry.context.metadata,
+          metadata: entry.context.metadata as any,
         },
       })
     } catch (error) {
@@ -73,7 +73,6 @@ export class Logger {
       case "WARN":
         return console.warn
       case "ERROR":
-      case "FATAL":
         return console.error
       default:
         return console.log
@@ -160,7 +159,7 @@ export class Logger {
   }
 
   async fatal(message: string, context: LogContext = {}): Promise<void> {
-    const entry = this.formatLogEntry("FATAL", message, {
+    const entry = this.formatLogEntry("ERROR", message, {
       ...context,
       metadata: this.sanitizeMetadata(context.metadata),
     })
@@ -186,7 +185,7 @@ export class Logger {
 
   async logApiResponse(method: string, path: string, statusCode: number, context: LogContext = {}): Promise<void> {
     const level = statusCode >= 400 ? "WARN" : "INFO"
-    await this[level](`API Response: ${method} ${path} - ${statusCode}`, {
+    const logContext: LogContext = {
       ...context,
       tags: ["api", "response"],
       metadata: {
@@ -195,7 +194,13 @@ export class Logger {
         path,
         statusCode,
       },
-    })
+    }
+    
+    if (level === "WARN") {
+      await this.warn(`API Response: ${method} ${path} - ${statusCode}`, logContext)
+    } else {
+      await this.info(`API Response: ${method} ${path} - ${statusCode}`, logContext)
+    }
   }
 
   async logDatabaseOperation(operation: string, table: string, context: LogContext = {}): Promise<void> {
@@ -242,7 +247,20 @@ export async function logEvent(
   message: string,
   context: LogContext = {}
 ): Promise<void> {
-  await logger[level.toLowerCase() as keyof Logger](message, context)
+  switch (level) {
+    case "DEBUG":
+      await logger.debug(message, context)
+      break
+    case "INFO":
+      await logger.info(message, context)
+      break
+    case "WARN":
+      await logger.warn(message, context)
+      break
+    case "ERROR":
+      await logger.error(message, context)
+      break
+  }
 }
 
 // Structured logging for specific domains

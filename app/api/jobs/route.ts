@@ -29,8 +29,13 @@ export const POST = withApiHandler(
     const validatedData = createJobSchema.parse(body)
     
     const job = await JobsService.createJob({
-      ...validatedData,
-      teacherId: user.id
+      title: validatedData.title,
+      description: validatedData.description,
+      subjectId: validatedData.subjectId,
+      teacherId: user.id,
+      xpReward: validatedData.xpReward,
+      moneyReward: validatedData.moneyReward,
+      ...(validatedData.maxStudents !== undefined && { maxStudents: validatedData.maxStudents })
     })
     
     return { job }

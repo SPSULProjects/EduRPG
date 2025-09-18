@@ -29,8 +29,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Trigger Bakalari sync
+    const requestId = request.headers.get('x-request-id')
     const result = await syncBakalariData(operator.bakalariToken, {
-      requestId: request.headers.get('x-request-id') || undefined,
+      ...(requestId && { requestId }),
       operatorId: session.user.id
     })
     

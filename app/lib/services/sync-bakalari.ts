@@ -46,7 +46,7 @@ const mapBakalariUserTypeToRole = (userType: string): UserRole => {
  */
 const extractGradeFromClass = (classAbbrev: string): number => {
   const match = classAbbrev.match(/^(\d+)/)
-  return match ? parseInt(match[1], 10) : 1
+  return match && match[1] ? parseInt(match[1], 10) : 1
 }
 
 /**

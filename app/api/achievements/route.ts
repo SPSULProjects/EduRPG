@@ -52,7 +52,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const achievementData = createAchievementSchema.parse(body)
+    const parsedData = createAchievementSchema.parse(body)
+    
+    // Filter out undefined values to satisfy exactOptionalPropertyTypes
+    const achievementData = {
+      name: parsedData.name,
+      description: parsedData.description,
+      ...(parsedData.badgeUrl && { badgeUrl: parsedData.badgeUrl }),
+      ...(parsedData.criteria && { criteria: parsedData.criteria })
+    }
 
     const achievement = await AchievementsService.createAchievement(achievementData)
 

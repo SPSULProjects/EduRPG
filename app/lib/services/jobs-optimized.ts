@@ -262,7 +262,7 @@ export class JobsServiceOptimized extends BaseService {
         }
       }, pagination)
       
-      return result.data
+      return result.data as JobWithDetails[]
     }
     
     return this.findManyOptimized(prisma.job, {
@@ -379,7 +379,7 @@ export class JobsServiceOptimized extends BaseService {
       })
       
       // Process payouts for approved assignments
-      const payoutPromises = job.assignments.map(async (assignment) => {
+      const payoutPromises = job.assignments.map(async (assignment: any) => {
         // Create XP audit
         await tx.xPAudit.create({
           data: {

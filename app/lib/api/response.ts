@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 export interface ApiResponse<T = unknown> {
   ok: boolean
@@ -117,9 +117,9 @@ export class ApiResponseHandler {
 }
 
 export function withApiHandler<T extends unknown[], R>(
-  handler: (request: Request, ...args: T) => Promise<R>
+  handler: (request: NextRequest, ...args: T) => Promise<R>
 ) {
-  return async (request: Request, ...args: T): Promise<NextResponse<ApiResponse>> => {
+  return async (request: NextRequest, ...args: T): Promise<NextResponse<ApiResponse>> => {
     const requestId = request.headers.get("x-request-id") || crypto.randomUUID()
 
     try {

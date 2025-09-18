@@ -10,16 +10,26 @@ export async function POST(request: NextRequest) {
     // Check authorization using the guard utility
     const guardResult = await guardApiRoute('/api/sync/bakalari', requestId)
     if (guardResult.error) {
-      return NextResponse.json(guardResult.body, { status: guardResult.status })
+      return NextResponse.json(guardResult.body, { status: guardResult.status || 500 })
     }
     
     const { user } = guardResult
+
+    if (!user) {
+      return NextResponse.json(
+        { 
+          code: 'UNAUTHORIZED',
+          message: "User not found in session"
+        },
+        { status: 401 }
+      )
+    }
 
     // Get a valid Bakalari token for sync
     // In a real implementation, you might want to use a service account
     // or get the token from an operator's session
     const operator = await prisma.user.findUnique({
-      where: { id: user?.id }
+      where: { id: user.id }
     })
 
     if (!operator?.bakalariToken) {

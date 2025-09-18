@@ -114,9 +114,12 @@ export async function POST(request: NextRequest) {
     const user = await requireOperator()
     
     const event = await EventsService.createEvent({
-      ...validatedData,
+      title: validatedData.title,
+      description: validatedData.description || null,
       startsAt: new Date(validatedData.startsAt),
-      endsAt: validatedData.endsAt ? new Date(validatedData.endsAt) : undefined
+      endsAt: validatedData.endsAt ? new Date(validatedData.endsAt) : null,
+      ...(validatedData.xpBonus !== undefined && { xpBonus: validatedData.xpBonus }),
+      rarityReward: validatedData.rarityReward || null
     }, user.id)
     
     return createSuccessNextResponse({ event }, requestId, 201)

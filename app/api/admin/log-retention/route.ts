@@ -89,11 +89,18 @@ export async function POST(request: NextRequest) {
       batchSize: z.number().min(10).max(10000).optional()
     })
     
-    const config = schema.parse(body)
-    const retentionService = new LogRetentionService({
+    const parsedConfig = schema.parse(body)
+    
+    // Filter out undefined values to satisfy exactOptionalPropertyTypes
+    const config = {
       ...DEFAULT_RETENTION_CONFIG,
-      ...config
-    })
+      ...(parsedConfig.archiveAfterDays !== undefined && { archiveAfterDays: parsedConfig.archiveAfterDays }),
+      ...(parsedConfig.restrictAfterDays !== undefined && { restrictAfterDays: parsedConfig.restrictAfterDays }),
+      ...(parsedConfig.deleteAfterDays !== undefined && { deleteAfterDays: parsedConfig.deleteAfterDays }),
+      ...(parsedConfig.batchSize !== undefined && { batchSize: parsedConfig.batchSize })
+    }
+    
+    const retentionService = new LogRetentionService(config)
     
     await logEvent("INFO", "Retention process started", {
       userId: user.id,

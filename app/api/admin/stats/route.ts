@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       await prisma.$queryRaw`SELECT 1`
       databaseStatus = true
       // TODO: Implement actual backup tracking
-      lastBackup = new Date().toISOString().split('T')[0]
+      lastBackup = new Date().toISOString().split('T')[0] || "N/A"
     } catch (error) {
       databaseStatus = false
     }

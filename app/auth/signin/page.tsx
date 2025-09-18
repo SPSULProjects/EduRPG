@@ -41,7 +41,7 @@ export default function SignInPage() {
         }
         
         const userFriendlyError = errorMessages[result.error] || errorMessages['Default']
-        setError(userFriendlyError)
+        setError(userFriendlyError || 'Nastala neočekávaná chyba. Zkuste to znovu.')
       } else if (result?.ok) {
         // Redirect to dashboard after successful login
         router.push("/dashboard")

@@ -24,7 +24,17 @@ export async function POST(request: NextRequest) {
     
     const user = await requireOperator()
     
-    const item = await ItemsService.createItem(validatedData)
+    // Filter out undefined values to satisfy exactOptionalPropertyTypes
+    const itemData = {
+      name: validatedData.name,
+      description: validatedData.description,
+      price: validatedData.price,
+      rarity: validatedData.rarity,
+      type: validatedData.type,
+      ...(validatedData.imageUrl && { imageUrl: validatedData.imageUrl })
+    }
+    
+    const item = await ItemsService.createItem(itemData)
     
     return NextResponse.json({ 
       ok: true,

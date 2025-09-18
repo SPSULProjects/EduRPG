@@ -93,14 +93,14 @@ export async function requireStudent(request: NextRequest): Promise<GuardRespons
 export function withAuth<T extends unknown[], R>(
   handler: (user: AuthenticatedUser, request: NextRequest, ...args: T) => Promise<R>
 ) {
-  return async (request: NextRequest, ...args: T): Promise<Response> => {
+  return async (request: NextRequest, ...args: T): Promise<R> => {
     const authResult = await requireAuth(request)
 
     if (!authResult.success) {
-      return authResult.response
+      throw new Error(`Authentication failed: ${authResult.response.status}`)
     }
 
-    return handler(authResult.user, request, ...args)
+    return handler(authResult.user, request, ...args) as R
   }
 }
 
@@ -108,13 +108,14 @@ export function withRole<T extends unknown[], R>(
   allowedRoles: UserRole[],
   handler: (user: AuthenticatedUser, request: NextRequest, ...args: T) => Promise<R>
 ) {
-  return async (request: NextRequest, ...args: T): Promise<Response> => {
+  return async (request: NextRequest, ...args: T): Promise<R> => {
     const authResult = await requireRole(request, allowedRoles)
 
     if (!authResult.success) {
-      return authResult.response
+      // Throw an error that withApiHandler can catch and handle
+      throw new Error(`Access denied: ${authResult.response.status}`)
     }
 
-    return handler(authResult.user, request, ...args)
+    return handler(authResult.user, request, ...args) as R
   }
 }
