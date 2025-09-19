@@ -641,15 +641,15 @@ export function setupGlobalMocks() {
       if (roles.includes('STUDENT')) return mockRequireStudent()()
       return mockRequireRoleForbidden()()
     }),
-    requireAuth: vi.fn().mockResolvedValue(mockSessions.student.user),
-    getCurrentUser: vi.fn().mockResolvedValue(mockSessions.student.user),
-    canAccessResource: vi.fn().mockImplementation((userRole, resourceRole) => {
-      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
-      return roleHierarchy[userRole] >= roleHierarchy[resourceRole]
+    requireAuth: vi.fn().mockResolvedValue(mockSessions.student?.user),
+    getCurrentUser: vi.fn().mockResolvedValue(mockSessions.student?.user),
+    canAccessResource: vi.fn().mockImplementation((userRole: string, resourceRole: string) => {
+      const roleHierarchy: Record<string, number> = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return (roleHierarchy[userRole] || 0) >= (roleHierarchy[resourceRole] || 0)
     }),
     canManageUser: vi.fn().mockImplementation((currentUserRole, targetUserRole) => {
-      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
-      return roleHierarchy[currentUserRole] >= roleHierarchy[targetUserRole]
+      const roleHierarchy: Record<string, number> = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return (roleHierarchy[currentUserRole] || 0) >= (roleHierarchy[targetUserRole] || 0)
     }),
     canViewClass: vi.fn().mockImplementation((currentUserRole, currentUserClassId, targetClassId) => {
       if (currentUserRole === 'OPERATOR') return true
@@ -670,12 +670,12 @@ export function setupGlobalMocks() {
       if (roles.includes('STUDENT')) return mockRequireStudent()()
       return mockRequireRoleForbidden()()
     }),
-    requireAuth: vi.fn().mockResolvedValue(mockSessions.student.user),
-    guardRoute: vi.fn().mockResolvedValue(mockSessions.student.user),
-    guardApiRoute: vi.fn().mockResolvedValue({ error: null, user: mockSessions.student.user }),
+    requireAuth: vi.fn().mockResolvedValue(mockSessions.student?.user),
+    guardRoute: vi.fn().mockResolvedValue(mockSessions.student?.user),
+    guardApiRoute: vi.fn().mockResolvedValue({ error: null, user: mockSessions.student?.user }),
     canManageUser: vi.fn().mockImplementation((currentUserRole, targetUserRole) => {
-      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
-      return roleHierarchy[currentUserRole] >= roleHierarchy[targetUserRole]
+      const roleHierarchy: Record<string, number> = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return (roleHierarchy[currentUserRole] || 0) >= (roleHierarchy[targetUserRole] || 0)
     }),
     canViewClass: vi.fn().mockImplementation((currentUserRole, currentUserClassId, targetClassId) => {
       if (currentUserRole === 'OPERATOR') return true

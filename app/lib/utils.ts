@@ -79,7 +79,7 @@ export async function logEvent(
     const safeMetadata = createSafeLogMetadata({
       ...options,
       timestamp: new Date().toISOString(),
-      metadata: options.metadata ? safePayload(options.metadata) : undefined
+      metadata: options.metadata ? safePayload(options.metadata) as Record<string, any> : undefined
     })
 
     await prisma.systemLog.create({
