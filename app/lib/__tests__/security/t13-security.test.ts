@@ -266,7 +266,9 @@ describe('T13: Log Retention', () => {
 describe('T13: Integration Tests', () => {
   it('should log events without PII', async () => {
     // Mock the database call
-    const mockCreate = vi.fn()
+    const mockCreate = vi.fn().mockResolvedValue({})
+    
+    // Mock Prisma specifically for this test
     vi.doMock('../../prisma', () => ({
       prisma: {
         systemLog: {
@@ -274,6 +276,10 @@ describe('T13: Integration Tests', () => {
         }
       }
     }))
+
+    // Clear the module cache and re-import
+    vi.resetModules()
+    const { logEvent } = await import('../../utils')
 
     await logEvent('INFO', 'User logged in', {
       userId: 'user123',
@@ -288,7 +294,7 @@ describe('T13: Integration Tests', () => {
         level: 'INFO',
         message: 'User logged in',
         userId: 'user123',
-        requestId: undefined,
+        requestId: expect.any(String),
         metadata: expect.objectContaining({
           count: 5
           // username should be redacted
@@ -299,6 +305,10 @@ describe('T13: Integration Tests', () => {
 
   it('should reject log entries with PII', async () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    // Clear the module cache and re-import
+    vi.resetModules()
+    const { logEvent } = await import('../../utils')
 
     await logEvent('INFO', 'User john@example.com logged in', {
       userId: 'user123'

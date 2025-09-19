@@ -89,16 +89,16 @@ describe('Centralized Mocks Example', () => {
 
   describe('Session Data', () => {
     it('should have consistent test user data', () => {
-      expect(mockSessions.student.user.id).toBe('student1')
+      expect(mockSessions.student.user.id).toBe('cuid_student_001')
       expect(mockSessions.student.user.email).toBe('jan.novak@school.cz')
       expect(mockSessions.student.user.role).toBe('STUDENT')
-      expect(mockSessions.student.user.classId).toBe('class1')
+      expect(mockSessions.student.user.classId).toBe('cuid_class_001')
 
-      expect(mockSessions.teacher.user.id).toBe('teacher1')
+      expect(mockSessions.teacher.user.id).toBe('cuid_teacher_001')
       expect(mockSessions.teacher.user.email).toBe('petr.dvorak@school.cz')
       expect(mockSessions.teacher.user.role).toBe('TEACHER')
 
-      expect(mockSessions.operator.user.id).toBe('operator1')
+      expect(mockSessions.operator.user.id).toBe('cuid_operator_001')
       expect(mockSessions.operator.user.email).toBe('admin@school.cz')
       expect(mockSessions.operator.user.role).toBe('OPERATOR')
     })

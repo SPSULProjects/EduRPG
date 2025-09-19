@@ -10,25 +10,17 @@ const PII_PATTERNS = [
   // Email addresses
   /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
   // Phone numbers (various formats) - improved regex to match full number
-  /\b(?:\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b/g,
-  // Czech phone numbers - comprehensive regex to match full number including +420 prefix
-  /\+420\s[0-9]{3}\s[0-9]{3}\s[0-9]{3}/g,
-  // Czech phone numbers with different separators
-  /\+420[-.\s]?[0-9]{3}[-.\s]?[0-9]{3}[-.\s]?[0-9]{3}/g,
-  // Czech phone numbers without +420 prefix
-  /\b[0-9]{3}[-.\s]?[0-9]{3}[-.\s]?[0-9]{3}\b/g,
+  /\b(?:\+?1[-.\s]?)?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})\b/g,
+  // Czech phone numbers - improved regex to match full number including +420 prefix
+  /\b(?:\+420[-.\s]?)?([0-9]{3})[-.\s]?([0-9]{3})[-.\s]?([0-9]{3})\b/g,
   // Credit card numbers
   /\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13}|3[0-9]{13}|6(?:011|5[0-9]{2})[0-9]{12})\b/g,
   // Social security numbers (Czech format)
   /\b[0-9]{6}\/[0-9]{3,4}\b/g,
-  // Password patterns - redact the key and value separately
-  /\bpassword\b/gi,
-  /\bpwd\b/gi,
-  /\bpass\b/gi,
-  // Password values (common patterns)
-  /\bsecret\d+\b/gi,
-  /\bpassword\d+\b/gi,
-  /\badmin\d+\b/gi,
+  // Passwords (improved patterns) - match the whole key:value pair
+  /password["\s]*[:=]["\s]*[^"\s,}]+/gi,
+  /pwd["\s]*[:=]["\s]*[^"\s,}]+/gi,
+  /pass["\s]*[:=]["\s]*[^"\s,}]+/gi,
   // API keys and tokens
   /(?:api[_-]?key|token|secret|auth[_-]?key)["\s]*[:=]["\s]*[^"\s,}]+/gi,
   // Full names (basic pattern - may need refinement)

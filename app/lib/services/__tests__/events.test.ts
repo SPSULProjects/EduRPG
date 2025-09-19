@@ -29,7 +29,8 @@ vi.mock('../../prisma', () => ({
 
 vi.mock('../../utils', () => ({
   generateRequestId: vi.fn(() => 'test-request-id'),
-  logEvent: vi.fn()
+  logEvent: vi.fn(),
+  sanitizeForLog: vi.fn((msg: string) => msg)
 }))
 
 vi.mock('../xp', () => ({

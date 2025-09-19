@@ -1,30 +1,48 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/lib/auth"
 import { JobsService } from "@/app/lib/services/jobs"
 import { generateRequestId, sanitizeForLog, logEvent } from "@/app/lib/utils"
 import { withValidation } from "@/app/lib/validation/validator"
 import { applyForJobParamsSchema, ApplyForJobParams } from "./schema"
+import { ErrorResponses, createSuccessResponse, withApiErrorHandler } from "@/app/lib/api/error-responses"
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   let session: any = null
+  let id: string = ''
   const requestId = request.headers.get('x-request-id') || generateRequestId()
   
   try {
     // Get route parameters
-    const { id } = await params
+    const paramsData = await params
+    id = paramsData.id
     
-    // Validate session
+    // Validate session first to get userId for logging
     session = await getServerSession(authOptions)
+    
+    // Validate job ID
+    if (!id || id.trim() === '') {
+      await logEvent('WARN', 'validation_error', {
+        requestId,
+        userId: session?.user?.id,
+        metadata: {
+          path: '/api/jobs/[id]/apply',
+          field: 'jobId',
+          value: id
+        }
+      })
+      return ErrorResponses.badRequest("Invalid job ID", undefined, requestId)
+    }
+    
     if (!session?.user) {
       await logEvent('WARN', 'auth_deny', {
         requestId,
         metadata: { path: '/api/jobs/[id]/apply', reason: 'No session' }
       })
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return ErrorResponses.unauthorized(requestId)
     }
     
     // Validate role
@@ -38,7 +56,7 @@ export async function POST(
           requiredRole: 'STUDENT'
         }
       })
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+      return ErrorResponses.forbidden(requestId)
     }
     
     // Apply for job with request ID
@@ -54,7 +72,7 @@ export async function POST(
       }
     })
     
-    return NextResponse.json({ assignment }, { status: 201 })
+    return createSuccessResponse({ assignment }, 201, requestId)
   } catch (error) {
     // Log error with context
     await logEvent('ERROR', 'job_application_failed', {
@@ -62,7 +80,8 @@ export async function POST(
       userId: session?.user?.id,
       metadata: {
         path: '/api/jobs/[id]/apply',
-        error: error instanceof Error ? sanitizeForLog(error.message) : 'Unknown error'
+        error: error instanceof Error ? sanitizeForLog(error.message) : 'Unknown error',
+        jobId: id
       }
     })
     
@@ -70,19 +89,19 @@ export async function POST(
     if (error instanceof Error) {
       // Map domain errors to appropriate HTTP status codes
       if (error.message.includes('not found')) {
-        return NextResponse.json({ error: "Job not found" }, { status: 404 })
+        return ErrorResponses.notFound("Job not found", requestId)
       }
       if (error.message.includes('already applied')) {
-        return NextResponse.json({ error: "Already applied for this job" }, { status: 409 })
+        return ErrorResponses.conflict("Already applied for this job", requestId)
       }
       if (error.message.includes('not open') || error.message.includes('full')) {
-        return NextResponse.json({ error: "Job is not available" }, { status: 400 })
+        return ErrorResponses.badRequest("Job is not available", undefined, requestId)
       }
       // For other domain errors, return 400
-      return NextResponse.json({ error: "Invalid request" }, { status: 400 })
+      return ErrorResponses.badRequest("Invalid request", undefined, requestId)
     }
     
     // For unexpected errors, return 500
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return ErrorResponses.internalError(requestId)
   }
 }

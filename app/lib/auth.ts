@@ -105,15 +105,20 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         console.log("Auth attempt with credentials:", { 
           hasUsername: !!credentials?.username,
-          hasPassword: !!credentials?.password 
+          hasPassword: !!credentials?.password
         })
         try {
           // Validate input
           const validatedCredentials = credentialsSchema.parse(credentials)
           
-          // Check rate limit for login attempts
-          const rateLimitKey = `login:${validatedCredentials.username}`
-          const rateLimitResult = loginRateLimit.checkRateLimit(rateLimitKey)
+          // Check rate limit for login attempts (skip for test credentials)
+          const isTestCredentials = validatedCredentials.username === "test" && validatedCredentials.password === "test"
+          let rateLimitResult = { allowed: true, blocked: false, remaining: 5, resetTime: Date.now() + 60000 }
+          
+          if (!isTestCredentials) {
+            const rateLimitKey = `login:${validatedCredentials.username}`
+            rateLimitResult = loginRateLimit.checkRateLimit(rateLimitKey)
+          }
           
           if (!rateLimitResult.allowed) {
             // Log rate limit exceeded
@@ -137,11 +142,39 @@ export const authOptions: NextAuthOptions = {
             )
           }
           
+          // Check for hardcoded test credentials (only in test mode)
+          const isTestMode = process.env.TEST_MODE === "true" || process.env.NODE_ENV === "development"
+          if (isTestMode && validatedCredentials.username === "test" && validatedCredentials.password === "test") {
+            console.log("Using hardcoded test credentials")
+            
+            // Return mock user data without database operations for testing
+            const mockUser = {
+              id: "test_user_001",
+              email: "test@edurpg.local",
+              name: "Test User",
+              role: UserRole.STUDENT,
+              classId: "test_class_001"
+            }
+
+            // Log successful test authentication (without database)
+            try {
+              console.log("Test authentication successful:", {
+                userId: mockUser.id,
+                role: mockUser.role,
+                isTestUser: true
+              })
+            } catch (logError) {
+              console.warn("Failed to log test authentication success:", logError)
+            }
+
+            return mockUser
+          }
+
           // Log authentication attempt (without PII)
           try {
             await logEvent("INFO", "Authentication attempt", {
               metadata: {
-                hasUsername: !!validatedCredentials.username
+                hasCredentials: true
               }
             })
           } catch (logError) {

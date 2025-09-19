@@ -112,8 +112,8 @@ export function withRole<T extends unknown[], R>(
     const authResult = await requireRole(request, allowedRoles)
 
     if (!authResult.success) {
-      // Throw an error that withApiHandler can catch and handle
-      throw new Error(`Access denied: ${authResult.response.status}`)
+      // Return the response directly instead of throwing
+      return authResult.response as R
     }
 
     return handler(authResult.user, request, ...args) as R

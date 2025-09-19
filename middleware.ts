@@ -45,6 +45,20 @@ export async function middleware(request: NextRequest) {
       secret: process.env.NEXTAUTH_SECRET 
     })
     
+    // If no token, redirect to sign-in page
+    if (!token) {
+      logMiddlewareEvent('INFO', 'auth_redirect', {
+        requestId,
+        path: pathname,
+        method: request.method,
+        reason: 'unauthenticated'
+      })
+      
+      const signInUrl = new URL('/auth/signin', request.url)
+      signInUrl.searchParams.set('callbackUrl', request.url)
+      return NextResponse.redirect(signInUrl)
+    }
+    
     // Check route access based on policies
     const userRole = token?.role as UserRole | undefined
     const policyResult = checkRouteAccess(pathname, userRole)
@@ -87,14 +101,16 @@ export async function middleware(request: NextRequest) {
   // Add requestId to response headers
   response.headers.set('x-request-id', requestId)
   
-  // Log request start
-  console.log('request_start', {
-    requestId,
-    method: request.method,
-    url: request.url,
-    userAgent: request.headers.get('user-agent'),
-    timestamp: new Date().toISOString()
-  })
+  // Log request start (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('request_start', {
+      requestId,
+      method: request.method,
+      url: request.url,
+      userAgent: request.headers.get('user-agent'),
+      timestamp: new Date().toISOString()
+    })
+  }
   
   // Add response logging
   response.headers.set('x-response-time', `${Date.now() - startTime}ms`)

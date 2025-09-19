@@ -14,21 +14,62 @@ const DEFAULTS: Required<RedactionOptions> = {
   redactUnknownTokens: true,
 };
 
-// Case-insensitive deny list for field names
+// Case-insensitive deny list for field names (exact matches)
 const DENY_FIELD_NAMES = new Set([
   "password", "pwd", "pass",
   "token", "access_token", "refresh_token", "id_token", "authorization", "auth", "api_key", "apikey", "secret", "key",
   "email", "mail",
   "phone", "tel", "mobile",
   "address",
+  "ssn", "social_security_number",
+  "credit_card", "creditcard", "card_number", "cardnumber",
+  "mfa_code", "mfaCode", "mfa_token", "mfaToken", "verification_code", "verificationCode",
+  "ip_address", "ipAddress", "ip",
 ]);
+
+// Field name patterns that should be redacted (partial matches)
+// Be more specific to avoid false positives
+const DENY_FIELD_PATTERNS = [
+  /password/i,
+  /pwd/i,
+  /pass/i,
+  /token/i,
+  /secret/i,
+  /api[_-]?key/i,
+  /email/i,
+  /mail/i,
+  /phone/i,
+  /tel/i,
+  /mobile/i,
+  /address/i,
+  /username/i,
+  /login/i,
+  /account/i,
+  /firstname/i,
+  /lastname/i,
+  /fullname/i,
+  /ssn/i,
+  /social[_-]?security/i,
+  /credit[_-]?card/i,
+  /card[_-]?number/i,
+  /mfa[_-]?code/i,
+  /mfa[_-]?token/i,
+  /verification[_-]?code/i,
+  /ip[_-]?address/i,
+  // More specific patterns to avoid false positives
+  // Remove exact "user" and "name" patterns as they're too aggressive for structural fields
+];
 
 // Patterns to mask inside string values (order matters)
 const PATTERNS: Array<{ type: string; re: RegExp }> = [
-  // Emails
-  { type: "email", re: /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g },
+  // Emails - improved pattern to catch more cases including localhost
+  { type: "email", re: /[\w.+-]+@[\w.-]+(?:\.[A-Za-z]{2,}|(?:localhost|local))/g },
   // Czech phone numbers: optional +420, then 3-3-3 digits with separators or none
   { type: "phone", re: /(?<!\d)(?:\+?420[\s.-]?)?(?:\d{3}[\s.-]?\d{3}[\s.-]?\d{3})(?!\d)/g },
+  // Password patterns in strings - key:value or key=value format
+  { type: "password", re: /(?:password|pwd|pass)\s*[:=]\s*[^\s,}]+/gi },
+  // API keys and tokens in strings
+  { type: "token", re: /(?:api[_-]?key|token|secret|auth[_-]?key)\s*[:=]\s*[^\s,}]+/gi },
   // JWT-ish / long tokens (very general, keep last)
   { type: "token", re: /\b(?:eyJ[A-Za-z0-9_\-]{10,}|[A-Za-z0-9_\-]{24,})\b/g },
 ];
@@ -75,10 +116,20 @@ export function redactPII<T = unknown>(input: T, opts?: RedactionOptions): T {
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(value)) {
       const lk = lc(k);
+      
+      // Check exact field name matches first
       if (DENY_FIELD_NAMES.has(lk)) {
         out[k] = marker("field");
         continue;
       }
+      
+      // Check partial field name matches
+      const isPiiField = DENY_FIELD_PATTERNS.some(pattern => pattern.test(k));
+      if (isPiiField) {
+        out[k] = marker("field");
+        continue;
+      }
+      
       // For string leafs: still run pattern masking (e.g., email in "note")
       if (typeof v === "string") {
         out[k] = redactString(v);

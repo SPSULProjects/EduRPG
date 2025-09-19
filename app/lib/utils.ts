@@ -4,11 +4,55 @@ import { randomUUID } from "crypto"
 import { prisma } from "./prisma"
 import { LogLevel } from "./generated"
 import { NextRequest } from "next/server"
-import { createSafeLogMetadata, validateLogEntry } from "./security/pii-redaction"
-import { safePayload } from "../../src/lib/security/redact"
+import { safePayload, redactPII } from "../../src/lib/security/redact"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+/**
+ * Validates that a log entry is safe to log (no obvious PII in message)
+ * This is a lightweight check - full redaction happens in safePayload
+ */
+function isLogMessageSafe(message: string): boolean {
+  // Check for obvious PII patterns in the message itself
+  const piiPatterns = [
+    /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/, // emails
+    /(?:\+?420[\s.-]?)?(?:\d{3}[\s.-]?\d{3}[\s.-]?\d{3})/, // Czech phones
+    /password\s*[:=]\s*\S+/i, // password assignments
+    /token\s*[:=]\s*\S+/i, // token assignments
+  ]
+  
+  return !piiPatterns.some(pattern => pattern.test(message))
+}
+
+/**
+ * Creates safe metadata for logging by extracting only allowed fields
+ */
+function createSafeLogMetadata(options: {
+  userId?: string
+  requestId?: string
+  metadata?: Record<string, any>
+  timestamp?: string
+}): {
+  userId?: string
+  requestId?: string
+  metadata?: any
+  timestamp?: string
+} {
+  const safe: any = {}
+  
+  // Only include explicitly safe fields
+  if (options.userId) safe.userId = options.userId
+  if (options.requestId) safe.requestId = options.requestId
+  if (options.timestamp) safe.timestamp = options.timestamp
+  
+  // Redact metadata if present
+  if (options.metadata) {
+    safe.metadata = safePayload(options.metadata)
+  }
+  
+  return safe
 }
 
 /**
@@ -24,10 +68,11 @@ export async function logEvent(
   } = {}
 ) {
   try {
-    // Validate and redact PII before logging
-    if (!validateLogEntry(level, message, options.metadata)) {
-      console.warn('Log entry contains PII and was rejected:', { level, message, options })
-      return
+    // Lightweight validation - only reject if message contains obvious PII
+    if (!isLogMessageSafe(message)) {
+      console.warn('Log message contains potential PII, redacting:', { level, message: '[REDACTED_MESSAGE]' })
+      // Don't reject the log, just redact the message
+      message = '[REDACTED_MESSAGE]'
     }
 
     // Create safe metadata using enhanced redaction

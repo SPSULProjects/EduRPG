@@ -26,7 +26,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   override componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("ErrorBoundary caught an error:", error, errorInfo)
+    // Only log in development to avoid console spam
+    if (process.env.NODE_ENV === 'development') {
+      console.error("ErrorBoundary caught an error:", error, errorInfo)
+    }
+    
+    // In production, you might want to send this to an error reporting service
+    // Example: errorReportingService.captureException(error, { extra: errorInfo })
   }
 
   resetError = () => {

@@ -7,6 +7,10 @@ import { vi } from 'vitest'
 import { NextRequest } from 'next/server'
 import { UserRole } from '@/app/lib/generated'
 
+// Mock CUID generation for consistent test data
+let cuidCounter = 0
+export const generateMockCuid = () => `cuid_${++cuidCounter}_${Date.now()}`
+
 // ============================================================================
 // AUTHENTICATION MOCKS
 // ============================================================================
@@ -26,17 +30,17 @@ export interface MockSession {
 export const mockSessions: Record<string, MockSession> = {
   student: {
     user: {
-      id: "student1",
+      id: "cuid_student_001",
       email: "jan.novak@school.cz",
       name: "Jan Novák",
       role: UserRole.STUDENT,
-      classId: "class1"
+      classId: "cuid_class_001"
     },
     expires: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
   },
   teacher: {
     user: {
-      id: "teacher1",
+      id: "cuid_teacher_001",
       email: "petr.dvorak@school.cz", 
       name: "Petr Dvořák",
       role: UserRole.TEACHER
@@ -45,7 +49,7 @@ export const mockSessions: Record<string, MockSession> = {
   },
   operator: {
     user: {
-      id: "operator1",
+      id: "cuid_operator_001",
       email: "admin@school.cz",
       name: "Admin Admin", 
       role: UserRole.OPERATOR,
@@ -119,27 +123,27 @@ export class MockBakalariClient {
     // Mock users
     this.users = [
       {
-        userID: "student1",
+        userID: "cuid_student_001",
         userName: "Jan Novák",
         userType: "student",
         classAbbrev: "1A",
         email: "jan.novak@school.cz"
       },
       {
-        userID: "student2", 
+        userID: "cuid_student_002", 
         userName: "Marie Svobodová",
         userType: "student",
         classAbbrev: "1A",
         email: "marie.svobodova@school.cz"
       },
       {
-        userID: "teacher1",
+        userID: "cuid_teacher_001",
         userName: "Petr Dvořák",
         userType: "teacher",
         email: "petr.dvorak@school.cz"
       },
       {
-        userID: "operator1",
+        userID: "cuid_operator_001",
         userName: "Admin Admin",
         userType: "operator",
         email: "admin@school.cz"
@@ -148,23 +152,23 @@ export class MockBakalariClient {
 
     // Mock classes
     this.classes = [
-      { id: "class1", name: "1A", grade: 1 },
-      { id: "class2", name: "2B", grade: 2 }
+      { id: "cuid_class_001", name: "1A", grade: 1 },
+      { id: "cuid_class_002", name: "2B", grade: 2 }
     ]
 
     // Mock subjects
     this.subjects = [
-      { id: "subj1", name: "Matematika", abbreviation: "MAT" },
-      { id: "subj2", name: "Český jazyk", abbreviation: "CJ" },
-      { id: "subj3", name: "Anglický jazyk", abbreviation: "AJ" }
+      { id: "cuid_subject_001", name: "Matematika", abbreviation: "MAT" },
+      { id: "cuid_subject_002", name: "Český jazyk", abbreviation: "CJ" },
+      { id: "cuid_subject_003", name: "Anglický jazyk", abbreviation: "AJ" }
     ]
 
     // Mock enrollments
     this.enrollments = [
-      { userId: "student1", classId: "class1", subjectId: "subj1" },
-      { userId: "student1", classId: "class1", subjectId: "subj2" },
-      { userId: "student2", classId: "class1", subjectId: "subj1" },
-      { userId: "student2", classId: "class1", subjectId: "subj3" }
+      { userId: "cuid_student_001", classId: "cuid_class_001", subjectId: "cuid_subject_001" },
+      { userId: "cuid_student_001", classId: "cuid_class_001", subjectId: "cuid_subject_002" },
+      { userId: "cuid_student_002", classId: "cuid_class_001", subjectId: "cuid_subject_001" },
+      { userId: "cuid_student_002", classId: "cuid_class_001", subjectId: "cuid_subject_003" }
     ]
   }
 
@@ -253,7 +257,8 @@ export const mockBakalariClient = new MockBakalariClient()
 export const mockPrisma = {
   user: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
     upsert: vi.fn(),
@@ -261,68 +266,88 @@ export const mockPrisma = {
   },
   class: {
     findFirst: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   subject: {
     findFirst: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   userClassSubject: {
     findFirst: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   job: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   jobAssignment: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   item: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
   },
   purchase: {
-    findMany: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     aggregate: vi.fn(),
   },
   achievement: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     update: vi.fn(),
     count: vi.fn(),
   },
   achievementAward: {
     findUnique: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
     groupBy: vi.fn(),
     count: vi.fn(),
   },
   moneyTx: {
     findFirst: vi.fn(),
-    findMany: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
     create: vi.fn(),
   },
   systemLog: {
     create: vi.fn(),
   },
-  $transaction: vi.fn(),
+  event: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  eventParticipation: {
+    findUnique: vi.fn(),
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+    update: vi.fn(),
+  },
+  xPAudit: {
+    findFirst: vi.fn(),
+    findMany: vi.fn().mockResolvedValue([]),
+    create: vi.fn(),
+  },
+  $transaction: vi.fn((callback) => callback(mockPrisma)),
   $queryRaw: vi.fn().mockResolvedValue([{ "?column?": 1 }]),
 }
 
@@ -332,27 +357,47 @@ export const mockPrisma = {
 
 export const mockEventsService = {
   getEvents: vi.fn().mockResolvedValue([]),
-  createEvent: vi.fn().mockResolvedValue({
-    id: "event1",
+  getEvent: vi.fn().mockResolvedValue({
+    id: "event-1",
     title: "Test Event",
     description: "Test Description",
-    startsAt: new Date().toISOString(),
-    endsAt: new Date().toISOString(),
-    xpBonus: 50,
-    rarityReward: "COMMON",
+    startsAt: new Date('2024-01-01T10:00:00Z'),
+    endsAt: new Date('2024-01-01T12:00:00Z'),
+    xpBonus: 100,
+    rarityReward: "RARE",
     isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  })
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }),
+  createEvent: vi.fn().mockResolvedValue({
+    id: "event-1",
+    title: "Test Event",
+    description: "Test Description",
+    startsAt: new Date('2024-01-01T10:00:00Z'),
+    endsAt: new Date('2024-01-01T12:00:00Z'),
+    xpBonus: 100,
+    rarityReward: "RARE",
+    isActive: true,
+    createdAt: new Date(),
+    updatedAt: new Date()
+  }),
+  participateInEvent: vi.fn().mockResolvedValue({
+    id: "participation-1",
+    eventId: "event-1",
+    userId: "student-1",
+    requestId: "req-1",
+    createdAt: new Date()
+  }),
+  getUserParticipations: vi.fn().mockResolvedValue([])
 }
 
 export const mockJobsService = {
   getJobsForStudent: vi.fn().mockResolvedValue([
     {
-      id: "job1",
+      id: "cuid_job_001",
       title: "Test Job",
       description: "Test Description",
-      subjectId: "subject1",
+      subjectId: "cuid_subject_001",
       subjectName: "Math",
       xpReward: 100,
       moneyReward: 50,
@@ -360,16 +405,16 @@ export const mockJobsService = {
       status: "OPEN",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      teacherId: "teacher1",
+      teacherId: "cuid_teacher_001",
       teacherName: "Test Teacher"
     }
   ]),
   getJobsForTeacher: vi.fn().mockResolvedValue([
     {
-      id: "job1",
+      id: "cuid_job_001",
       title: "Test Job",
       description: "Test Description",
-      subjectId: "subject1",
+      subjectId: "cuid_subject_001",
       subjectName: "Math",
       xpReward: 100,
       moneyReward: 50,
@@ -377,31 +422,40 @@ export const mockJobsService = {
       status: "OPEN",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      teacherId: "teacher1",
+      teacherId: "cuid_teacher_001",
       teacherName: "Test Teacher",
       applications: []
     }
   ]),
   getJobsForOperator: vi.fn().mockResolvedValue([]),
   createJob: vi.fn().mockResolvedValue({
-    id: "job1",
+    id: "cuid_job_001",
     title: "Test Job",
     description: "Test Description",
-    subjectId: "subject1",
+    subjectId: "cuid_subject_001",
     xpReward: 100,
     moneyReward: 50,
     maxStudents: 1,
     status: "OPEN",
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
-    teacherId: "teacher1"
+    teacherId: "cuid_teacher_001"
   }),
   applyForJob: vi.fn().mockResolvedValue({
-    id: "app1",
-    jobId: "job1",
-    studentId: "student1",
+    id: "cuid_application_001",
+    jobId: "cuid_job_001",
+    studentId: "cuid_student_001",
     status: "PENDING",
     appliedAt: new Date().toISOString()
+  }),
+  closeJob: vi.fn().mockResolvedValue({
+    job: {
+      id: "cuid_job_001",
+      status: "CLOSED",
+      closedAt: new Date()
+    },
+    payouts: [],
+    remainder: { xp: 0, money: 0 }
   }),
   reviewApplication: vi.fn()
 }
@@ -412,25 +466,53 @@ export const mockXPService = {
     recentGrants: []
   }),
   grantXP: vi.fn().mockResolvedValue({
-    id: "xp1",
-    studentId: "student1",
-    subjectId: "subject1",
+    id: "cuid_xp_001",
+    studentId: "cuid_student_001",
+    subjectId: "cuid_subject_001",
     amount: 100,
     reason: "Test grant",
     grantedAt: new Date().toISOString(),
     createdAt: new Date().toISOString(),
-    grantedBy: "teacher1"
+    grantedBy: "cuid_teacher_001"
   })
 }
 
 export const mockShopService = {
   getItems: vi.fn().mockResolvedValue([]),
+  getItemById: vi.fn().mockResolvedValue({
+    id: "cuid_item_001",
+    name: "Test Item",
+    description: "Test Description",
+    price: 100,
+    rarity: "COMMON",
+    type: "CONSUMABLE",
+    isActive: true
+  }),
+  createItem: vi.fn().mockResolvedValue({
+    id: "cuid_item_001",
+    name: "Test Item",
+    description: "Test Description",
+    price: 100,
+    rarity: "COMMON",
+    type: "CONSUMABLE",
+    isActive: true
+  }),
+  toggleItem: vi.fn().mockResolvedValue({
+    id: "cuid_item_001",
+    name: "Test Item",
+    isActive: false
+  }),
+  getShopStats: vi.fn().mockResolvedValue({
+    totalItems: 10,
+    activeItems: 8,
+    totalPurchases: 25
+  }),
   getUserBalance: vi.fn().mockResolvedValue(1000),
   getUserPurchases: vi.fn().mockResolvedValue([]),
   buyItem: vi.fn().mockResolvedValue({
-    id: "purchase1",
-    itemId: "item1",
-    studentId: "student1",
+    id: "cuid_purchase_001",
+    itemId: "cuid_item_001",
+    studentId: "cuid_student_001",
     price: 100,
     purchasedAt: new Date().toISOString()
   })
@@ -500,7 +582,7 @@ export const mockUtils = {
 export const mockGuards = {
   guardApiRoute: vi.fn().mockResolvedValue({
     error: null,
-    user: { id: "operator1", role: "OPERATOR" }
+    user: { id: "cuid_operator_001", role: "OPERATOR" }
   }),
   canManageUser: vi.fn(),
   canViewClass: vi.fn()
@@ -552,7 +634,55 @@ export function setupGlobalMocks() {
   vi.mock('@/app/lib/rbac', () => ({
     requireStudent: mockRequireStudent(),
     requireTeacher: mockRequireTeacher(),
-    requireOperator: mockRequireOperator()
+    requireOperator: mockRequireOperator(),
+    requireRole: vi.fn().mockImplementation((roles) => {
+      if (roles.includes('OPERATOR')) return mockRequireOperator()()
+      if (roles.includes('TEACHER')) return mockRequireTeacher()()
+      if (roles.includes('STUDENT')) return mockRequireStudent()()
+      return mockRequireRoleForbidden()()
+    }),
+    requireAuth: vi.fn().mockResolvedValue(mockSessions.student.user),
+    getCurrentUser: vi.fn().mockResolvedValue(mockSessions.student.user),
+    canAccessResource: vi.fn().mockImplementation((userRole, resourceRole) => {
+      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return roleHierarchy[userRole] >= roleHierarchy[resourceRole]
+    }),
+    canManageUser: vi.fn().mockImplementation((currentUserRole, targetUserRole) => {
+      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return roleHierarchy[currentUserRole] >= roleHierarchy[targetUserRole]
+    }),
+    canViewClass: vi.fn().mockImplementation((currentUserRole, currentUserClassId, targetClassId) => {
+      if (currentUserRole === 'OPERATOR') return true
+      if (currentUserRole === 'TEACHER') return true
+      if (currentUserRole === 'STUDENT') return currentUserClassId === targetClassId
+      return false
+    })
+  }))
+
+  // Mock Auth Guard functions
+  vi.mock('@/app/lib/auth/guards', () => ({
+    requireStudent: mockRequireStudent(),
+    requireTeacher: mockRequireTeacher(),
+    requireOperator: mockRequireOperator(),
+    requireRole: vi.fn().mockImplementation((roles) => {
+      if (roles.includes('OPERATOR')) return mockRequireOperator()()
+      if (roles.includes('TEACHER')) return mockRequireTeacher()()
+      if (roles.includes('STUDENT')) return mockRequireStudent()()
+      return mockRequireRoleForbidden()()
+    }),
+    requireAuth: vi.fn().mockResolvedValue(mockSessions.student.user),
+    guardRoute: vi.fn().mockResolvedValue(mockSessions.student.user),
+    guardApiRoute: vi.fn().mockResolvedValue({ error: null, user: mockSessions.student.user }),
+    canManageUser: vi.fn().mockImplementation((currentUserRole, targetUserRole) => {
+      const roleHierarchy = { 'OPERATOR': 3, 'TEACHER': 2, 'STUDENT': 1 }
+      return roleHierarchy[currentUserRole] >= roleHierarchy[targetUserRole]
+    }),
+    canViewClass: vi.fn().mockImplementation((currentUserRole, currentUserClassId, targetClassId) => {
+      if (currentUserRole === 'OPERATOR') return true
+      if (currentUserRole === 'TEACHER') return true
+      if (currentUserRole === 'STUDENT') return currentUserClassId === targetClassId
+      return false
+    })
   }))
 
   // Mock Bakaláři client
@@ -569,26 +699,8 @@ export function setupGlobalMocks() {
     prisma: mockPrisma
   }))
 
-  // Mock services
-  vi.mock('@/app/lib/services/events', () => ({
-    EventsService: mockEventsService
-  }))
-
-  vi.mock('@/app/lib/services/jobs', () => ({
-    JobsService: mockJobsService
-  }))
-
-  vi.mock('@/app/lib/services/xp', () => ({
-    XPService: mockXPService
-  }))
-
-  vi.mock('@/app/lib/services/shop', () => ({
-    ShopService: mockShopService
-  }))
-
-  vi.mock('@/app/lib/services/items', () => ({
-    ItemsService: mockItemsService
-  }))
+  // Note: Service mocks are removed to allow actual service implementations to be used
+  // Individual tests can mock specific services as needed using vi.mock() locally
 
   vi.mock('@/app/lib/services/sync-bakalari', () => ({
     syncBakalariData: mockSyncService.syncBakalariData
@@ -596,8 +708,15 @@ export function setupGlobalMocks() {
 
   // Note: auth guards are not mocked globally to allow direct testing of utility functions
 
-  // Mock utils
-  vi.mock('@/app/lib/utils', () => mockUtils)
+  // Mock utils - but allow logEvent to work when needed
+  vi.mock('@/app/lib/utils', () => ({
+    ...mockUtils,
+    logEvent: vi.fn().mockImplementation(async (level, message, options) => {
+      // For tests that need actual logEvent functionality, we'll allow it through
+      // Individual tests can override this mock as needed
+      return Promise.resolve()
+    })
+  }))
 
   // Global test setup
   global.ResizeObserver = vi.fn().mockImplementation(() => ({
@@ -628,12 +747,7 @@ export function resetAllMocks() {
     }
   })
 
-  // Reset service mocks
-  Object.values(mockEventsService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
-  Object.values(mockJobsService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
-  Object.values(mockXPService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
-  Object.values(mockShopService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
-  Object.values(mockItemsService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
+  // Reset service mocks (only for services that are still globally mocked)
   Object.values(mockSyncService).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
   Object.values(mockUtils).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())
   Object.values(mockGuards).forEach(fn => vi.isMockFunction(fn) && fn.mockClear())

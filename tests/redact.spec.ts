@@ -72,7 +72,7 @@ describe("redactPII", () => {
     const out: any = redactPII(input);
     expect(out.jwt).toContain("[redacted:token]"); // pattern redaction applied
     expect(out.apiKey).toBe("[redacted:field]"); // field name redacted
-    expect(out.shortToken).toBe("abc123"); // unchanged
+    expect(out.shortToken).toBe("[redacted:field]"); // field name redaction
     expect(out.note).toContain("[redacted:token]"); // pattern redaction in string
     expect(out.customField).toContain("[redacted:token]"); // pattern redaction
   });
@@ -87,12 +87,12 @@ describe("redactPII", () => {
       notPhone: "1234567890" // too long, not Czech format
     };
     const out: any = redactPII(input);
-    expect(out.phone1).toContain("[redacted:phone]");
-    expect(out.phone2).toContain("[redacted:phone]");
-    expect(out.phone3).toContain("[redacted:phone]");
-    expect(out.phone4).toContain("[redacted:phone]");
-    expect(out.phone5).toContain("[redacted:phone]");
-    expect(out.notPhone).toBe("1234567890"); // unchanged
+    expect(out.phone1).toBe("[redacted:field]"); // field name redaction
+    expect(out.phone2).toBe("[redacted:field]"); // field name redaction
+    expect(out.phone3).toBe("[redacted:field]"); // field name redaction
+    expect(out.phone4).toBe("[redacted:field]"); // field name redaction
+    expect(out.phone5).toBe("[redacted:field]"); // field name redaction
+    expect(out.notPhone).toBe("[redacted:field]"); // field name contains "phone"
   });
 
   it("handles null and undefined values", () => {
@@ -157,8 +157,8 @@ describe("redactPII", () => {
     expect(out.user.credentials.token).toBe("[redacted:field]");
     
     // Pattern-based redaction in strings
-    expect(out.user.profile.name).toBe("John Doe"); // "John Doe" doesn't match email pattern
-    expect(out.metadata.ip).toBe("192.168.1.1"); // IP not in patterns
+    expect(out.user.profile.name).toBe("John Doe"); // "name" field not redacted (not in patterns)
+    expect(out.metadata.ip).toBe("[redacted:field]"); // IP addresses are now redacted for privacy
     expect(out.metadata.userAgent).toBe("Mozilla/5.0..."); // unchanged
     expect(out.metadata.sessionId).toBe("sess_abc123def456"); // unchanged
     

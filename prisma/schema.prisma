@@ -1,6 +1,6 @@
 generator client {
-    provider = "prisma-client-js" 
-    output   = "../app/lib/generated/"
+  provider = "prisma-client-js"
+  output   = "../app/lib/generated/"
 }
 
 datasource db {
@@ -8,71 +8,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Core User Management
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  role      UserRole @default(STUDENT)
-  classId   String?
-  class     Class?   @relation(fields: [classId], references: [id])
-  
-  // Bakaláři integration
-  bakalariId String? @unique
-  bakalariToken String?
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
-  enrollments Enrollment[]
-  teacherDailyBudgets TeacherDailyBudget[]
-  jobAssignments JobAssignment[]
-  xpAudits XPAudit[]
-  moneyTransactions MoneyTx[]
-  purchases Purchase[]
-  achievementAwards AchievementAward[]
-  systemLogs SystemLog[]
-  jobs Job[]
-  achievementAwardsGiven AchievementAward[] @relation("AchievementAwardedBy")
-  eventParticipations EventParticipation[]
-  
+  id                     String               @id @default(cuid())
+  email                  String               @unique
+  name                   String
+  role                   UserRole             @default(STUDENT)
+  classId                String?
+  bakalariId             String?              @unique
+  bakalariToken          String?
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+  achievementAwardsGiven AchievementAward[]   @relation("AchievementAwardedBy")
+  achievementAwards      AchievementAward[]
+  enrollments            Enrollment[]
+  eventParticipations    EventParticipation[]
+  jobs                   Job[]
+  jobAssignments         JobAssignment[]
+  moneyTransactions      MoneyTx[]
+  purchases              Purchase[]
+  systemLogs             SystemLog[]
+  teacherDailyBudgets    TeacherDailyBudget[]
+  class                  Class?               @relation(fields: [classId], references: [id])
+  xpAudits               XPAudit[]
+
   @@index([role])
   @@index([classId])
   @@index([bakalariId])
 }
 
 model Class {
-  id        String   @id @default(cuid())
-  name      String
-  grade     Int
-  
-  // Relations
-  users     User[]
+  id          String       @id @default(cuid())
+  name        String
+  grade       Int
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   enrollments Enrollment[]
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  users       User[]
+
   @@index([grade])
-  @@unique([name, grade])
 }
 
 model Subject {
-  id        String   @id @default(cuid())
-  name      String
-  code      String   @unique
-  
-  // Relations
-  enrollments Enrollment[]
-  jobs       Job[]
+  id                  String               @id @default(cuid())
+  name                String
+  code                String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  enrollments         Enrollment[]
+  jobs                Job[]
   teacherDailyBudgets TeacherDailyBudget[]
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
 
 model Enrollment {
@@ -80,78 +64,57 @@ model Enrollment {
   userId    String
   subjectId String
   classId   String
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+  class     Class    @relation(fields: [classId], references: [id], onDelete: Cascade)
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, subjectId])
   @@index([userId])
   @@index([subjectId])
   @@index([classId])
 }
 
-// Jobs Domain
 model Job {
-  id          String      @id @default(cuid())
+  id          String          @id @default(cuid())
   title       String
   description String
   subjectId   String
   teacherId   String
   xpReward    Int
   moneyReward Int
-  status      JobStatus   @default(OPEN)
-  maxStudents Int         @default(1)
-  
-  // Relations
-  subject     Subject     @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  teacher     User        @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  assignments JobAssignment[]
-  
-  // Timestamps
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  status      JobStatus       @default(OPEN)
+  maxStudents Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   closedAt    DateTime?
-  
+  subject     Subject         @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher     User            @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  assignments JobAssignment[]
+
   @@index([subjectId])
   @@index([teacherId])
   @@index([status])
-  @@index([teacherId, status])
-  @@index([subjectId, status])
-  @@index([createdAt])
-  @@index([closedAt])
 }
 
 model JobAssignment {
-  id        String   @id @default(cuid())
-  jobId     String
-  studentId String
-  status    JobAssignmentStatus @default(APPLIED)
-  
-  // Relations
-  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
-  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String              @id @default(cuid())
+  jobId       String
+  studentId   String
+  status      JobAssignmentStatus @default(APPLIED)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
   completedAt DateTime?
-  
+  job         Job                 @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  student     User                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
   @@unique([jobId, studentId])
   @@index([jobId])
   @@index([studentId])
   @@index([status])
-  @@index([studentId, status])
-  @@index([createdAt])
-  @@index([completedAt])
 }
 
-// XP Economy
 model TeacherDailyBudget {
   id        String   @id @default(cuid())
   teacherId String
@@ -159,21 +122,15 @@ model TeacherDailyBudget {
   date      DateTime @db.Date
   budget    Int
   used      Int      @default(0)
-  
-  // Relations
-  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  teacher   User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
   @@unique([teacherId, subjectId, date])
   @@index([teacherId])
   @@index([subjectId])
   @@index([date])
-  @@index([teacherId, date])
-  @@index([subjectId, date])
 }
 
 model XPAudit {
@@ -182,64 +139,44 @@ model XPAudit {
   amount    Int
   reason    String
   requestId String?
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
   createdAt DateTime @default(now())
-  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([requestId])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
 model MoneyTx {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
   amount    Int
   type      MoneyTxType
   reason    String
   requestId String?
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([type])
   @@index([requestId])
-  @@index([userId, type])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
-// Shop & Items
 model Item {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   name        String
   description String
   price       Int
   rarity      ItemRarity @default(COMMON)
   type        ItemType
   imageUrl    String?
-  isActive    Boolean  @default(true)
-  
-  // Relations
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   purchases   Purchase[]
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
   @@index([rarity])
   @@index([type])
   @@index([isActive])
-  @@index([type, rarity])
-  @@index([isActive, type])
 }
 
 model Purchase {
@@ -247,85 +184,61 @@ model Purchase {
   userId    String
   itemId    String
   price     Int
-  
-  // Relations
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
   createdAt DateTime @default(now())
-  
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([userId])
   @@index([itemId])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
-// Achievements & Badges
 model Achievement {
-  id          String   @id @default(cuid())
+  id          String             @id @default(cuid())
   name        String
   description String
   badgeUrl    String?
   criteria    String?
-  isActive    Boolean  @default(true)
-  
-  // Relations
+  isActive    Boolean            @default(true)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
   awards      AchievementAward[]
-  
-  // Timestamps
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
   @@index([isActive])
 }
 
 model AchievementAward {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   userId        String
   achievementId String
   awardedBy     String?
   requestId     String?
-  
-  // Relations
-  user          User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  achievement   Achievement  @relation(fields: [achievementId], references: [id], onDelete: Cascade)
-  awardedByUser User?        @relation("AchievementAwardedBy", fields: [awardedBy], references: [id])
-  
-  // Timestamps
-  createdAt     DateTime     @default(now())
-  
+  createdAt     DateTime    @default(now())
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  awardedByUser User?       @relation("AchievementAwardedBy", fields: [awardedBy], references: [id])
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([userId, achievementId])
   @@index([userId])
   @@index([achievementId])
   @@index([requestId])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
-// Events
 model Event {
-  id            String   @id @default(cuid())
-  title         String
-  description   String?
-  startsAt      DateTime
-  endsAt        DateTime?
-  xpBonus       Int      @default(0)
-  rarityReward  ItemRarity?
-  isActive      Boolean  @default(true)
-  
-  // Relations
+  id             String               @id @default(cuid())
+  description    String?
+  xpBonus        Int                  @default(0)
+  isActive       Boolean              @default(true)
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  endsAt         DateTime?
+  rarityReward   ItemRarity?
+  startsAt       DateTime
+  title          String
   participations EventParticipation[]
-  
-  // Timestamps
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+
   @@index([startsAt])
   @@index([endsAt])
   @@index([isActive])
-  @@index([isActive, startsAt])
-  @@index([startsAt, endsAt])
 }
 
 model EventParticipation {
@@ -333,69 +246,46 @@ model EventParticipation {
   eventId   String
   userId    String
   requestId String?
-  
-  // Relations
+  createdAt DateTime @default(now())
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  
+
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
   @@index([requestId])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
-// System Logging & Audit
 model SystemLog {
-  id        String      @id @default(cuid())
-  level     LogLevel    @default(INFO)
+  id        String   @id @default(cuid())
+  level     LogLevel @default(INFO)
   message   String
   userId    String?
   requestId String?
   metadata  Json?
-  
-  // Retention fields (T13)
-  isArchived      Boolean   @default(false)
-  archivedAt      DateTime?
-  retentionStatus String    @default("ACTIVE") // ACTIVE, ARCHIVED, RESTRICTED
-  
-  // Relations
-  user      User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  // Timestamps
-  createdAt DateTime    @default(now())
-  
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
   @@index([level])
   @@index([userId])
   @@index([requestId])
   @@index([createdAt])
-  @@index([level, createdAt])
-  @@index([userId, level])
-  @@index([retentionStatus, createdAt])
-  @@index([isArchived, createdAt])
 }
 
 model ExternalRef {
-  id        String   @id @default(cuid())
-  type      String
+  id         String   @id @default(cuid())
+  type       String
   externalId String
   internalId String
-  metadata  Json?
-  
-  // Timestamps
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@unique([type, externalId])
   @@index([type])
   @@index([internalId])
 }
 
-// Enums
 enum UserRole {
   OPERATOR
   TEACHER

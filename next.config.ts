@@ -16,6 +16,12 @@ const nextConfig: NextConfig = {
     },
   },
   
+  // Development server configuration
+  devIndicators: {
+    buildActivity: true,
+    buildActivityPosition: 'bottom-right',
+  },
+  
   // Optimize images
   images: {
     formats: ["image/webp", "image/avif"],
@@ -25,7 +31,7 @@ const nextConfig: NextConfig = {
   // Enable compression
   compress: true,
   
-  // Security headers
+  // Security headers and MIME type fixes
   async headers() {
     return [
       {
@@ -45,11 +51,37 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/_next/static/(.*)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
+      },
+      {
+        source: "/(.*\\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000",
+          },
+        ],
+      },
     ];
   },
   
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
+    // Fix MIME type issues and improve development experience
+    if (dev) {
+      config.watchOptions = {
+        poll: 1000,
+        aggregateTimeout: 300,
+      };
+    }
+    
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization.splitChunks = {
@@ -63,6 +95,12 @@ const nextConfig: NextConfig = {
         },
       };
     }
+    
+    // Handle SVG files properly
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack'],
+    });
     
     return config;
   },

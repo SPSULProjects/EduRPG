@@ -1,72 +1,12 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/lib/auth"
 import { XPService } from "@/app/lib/services/xp"
 import { UserRole } from "@/app/lib/generated"
 import { logEvent } from "@/app/lib/utils"
-// Inline error handling to avoid Next.js client component issues
 import { withValidation } from "@/app/lib/validation/validator"
 import { grantXPSchema, GrantXPRequest } from "./schema"
-
-// Inline error response helpers
-function createAuthErrorResponse(requestId?: string): NextResponse {
-  return NextResponse.json({
-    ok: false,
-    code: 'UNAUTHORIZED',
-    message: "Authentication required",
-    requestId
-  }, { status: 401 })
-}
-
-function createForbiddenErrorResponse(requestId?: string): NextResponse {
-  return NextResponse.json({
-    ok: false,
-    code: 'FORBIDDEN',
-    message: "Access denied",
-    requestId
-  }, { status: 403 })
-}
-
-function createSuccessNextResponse<T>(data: T, requestId?: string, status: number = 200): NextResponse {
-  return NextResponse.json({
-    ok: true,
-    data,
-    requestId
-  }, { status })
-}
-
-// Inline error envelope wrapper
-function withApiErrorEnvelope<T extends any[], R>(
-  handler: (request: any, ...args: T) => Promise<R>
-) {
-  return async (request: any, ...args: T): Promise<NextResponse> => {
-    try {
-      const result = await handler(request, ...args)
-      
-      if (result instanceof NextResponse) {
-        return result
-      }
-      
-      const requestId = request?.headers?.get?.('x-request-id') || undefined
-      return createSuccessNextResponse(result, requestId)
-    } catch (error) {
-      const requestId = request?.headers?.get?.('x-request-id') || undefined
-      
-      console.error("API Error:", {
-        requestId,
-        error: error instanceof Error ? error.message : "Unknown error",
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      
-      return NextResponse.json({
-        ok: false,
-        code: 'INTERNAL_SERVER_ERROR',
-        message: "Internal server error",
-        requestId
-      }, { status: 500 })
-    }
-  }
-}
+import { ErrorResponses, createSuccessResponse, withApiErrorHandler } from "@/app/lib/api/error-responses"
 
 export async function POST(request: NextRequest) {
   try {
@@ -82,7 +22,7 @@ export async function POST(request: NextRequest) {
         ...(requestId && { requestId }),
         metadata: { path: "/api/xp/grant" }
       })
-      return createAuthErrorResponse(requestId)
+      return ErrorResponses.unauthorized(requestId)
     }
     
     // Only teachers and operators can grant XP
@@ -92,7 +32,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         metadata: { role: session.user.role }
       })
-      return createForbiddenErrorResponse(requestId)
+      return ErrorResponses.forbidden(requestId)
     }
     
     const { studentId, subjectId, amount, reason } = validatedData
@@ -118,14 +58,14 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    return createSuccessNextResponse({
+    return createSuccessResponse({
       xpAudit: {
         id: xpAudit.id,
         amount: xpAudit.amount,
         reason: xpAudit.reason,
         createdAt: xpAudit.createdAt
       }
-    }, requestId)
+    }, 201, requestId)
   } catch (error) {
     const requestId = request.headers.get('x-request-id') || undefined
     console.error("API Error:", {
@@ -134,11 +74,6 @@ export async function POST(request: NextRequest) {
       stack: error instanceof Error ? error.stack : undefined
     })
     
-    return NextResponse.json({
-      ok: false,
-      code: 'INTERNAL_SERVER_ERROR',
-      message: "Internal server error",
-      requestId
-    }, { status: 500 })
+    return ErrorResponses.internalError(requestId)
   }
 }
