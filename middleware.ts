@@ -36,15 +36,16 @@ export async function middleware(request: NextRequest) {
   
   // Skip auth check for public routes
   const publicRoutes = ['/api/auth', '/api/health', '/auth', '/favicon.ico', '/']
+    const loginRoute = ['/auth/signin']
   const isPublicRoute = publicRoutes.some(route => pathname.startsWith(route))
+
+    // Get JWT token for authentication
+    const token = await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET
+    })
   
   if (!isPublicRoute) {
-    // Get JWT token for authentication
-    const token = await getToken({ 
-      req: request, 
-      secret: process.env.NEXTAUTH_SECRET 
-    })
-    
     // If no token, redirect to sign-in page
     if (!token) {
       logMiddlewareEvent('INFO', 'auth_redirect', {
@@ -90,6 +91,22 @@ export async function middleware(request: NextRequest) {
       )
     }
   }
+
+    if (loginRoute.some(route => pathname.startsWith(route))) {
+        // If the user is authenticated already, move him to dashboard
+
+        const userRole = token?.role as UserRole | undefined
+        if (userRole) {
+            logMiddlewareEvent('INFO', 'redirect to dashboard', {
+                requestId,
+                path: pathname,
+                method: request.method,
+                userRole: userRole || 'unauthenticated',
+            })
+            return NextResponse.redirect(new URL("/dashboard", request.url))
+        }
+
+    }
   
   // Create response
   const response = NextResponse.next({

@@ -27,7 +27,8 @@ export default function SignInPage() {
       const result = await signIn("credentials", {
         username,
         password,
-        redirect: false,
+        redirect: true,
+          callbackUrl: "/dashboard"
       })
 
       if (result?.error) {
@@ -43,8 +44,8 @@ export default function SignInPage() {
         const userFriendlyError = errorMessages[result.error] || errorMessages['Default']
         setError(userFriendlyError || 'Nastala neočekávaná chyba. Zkuste to znovu.')
       } else if (result?.ok) {
-        // Redirect to dashboard after successful login
-        router.push("/dashboard")
+          router.replace('/dashboard')
+          router.refresh()   // <- critical: updates the server tree to read new cookies
       }
     } catch (error) {
       setError("An unexpected error occurred. Please try again.")
