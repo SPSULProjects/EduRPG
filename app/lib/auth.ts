@@ -195,6 +195,8 @@ export const authOptions: NextAuthOptions = {
             hasToken: !!bakalariResult.accessToken
           })
 
+            console.log("Received data: ", bakalariResult.data);
+
           if (!bakalariResult.status.success) {
             // Log failed authentication (without PII)
             try {

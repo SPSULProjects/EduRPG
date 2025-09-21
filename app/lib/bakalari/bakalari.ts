@@ -277,7 +277,8 @@ export const loginToBakalariAndFetchUserData = async (
             UserType: userDataResponse.userType,
             FullUserName: userDataResponse.fullUserName,
             Class: { Abbrev: userDataResponse.userType === "student" ? userDataResponse.classAbbrev : null, Id: userDataResponse.classId },
-            Subjects: getBakalariSubjectDataResponse
+            Subjects: getBakalariSubjectDataResponse,
+            UserUID: userDataResponse.userID
         });
 
         return new BakalariLoginReturn(
